@@ -36,8 +36,9 @@ amqp.connect(process.env.RABBITMQ_URL)
 wss.on("connection", ws => {
   ws.on("message", message => {
     // verify structure of message from client
+    let json;
     try {
-      let json = JSON.parse(message)
+      json = JSON.parse(message)
     } catch {
       ws.send(JSON.stringify({ "error": `invalid json` }));
       return;
