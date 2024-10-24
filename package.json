@@ -17,6 +17,8 @@
   },
   "homepage": "https://github.com/CS467SynchronousCommunicationPlatform/backend#readme",
   "dependencies": {
-    "express": "^4.21.1"
+    "amqplib": "^0.10.4",
+    "dotenv": "^16.4.5",
+    "ws": "^8.18.0"
   }
 }
