@@ -1,0 +1,22 @@
+{
+  "name": "synchronous-communication-platform",
+  "version": "1.0.0",
+  "description": "CS 467 Capstone Project",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CS467SynchronousCommunicationPlatform/backend.git"
+  },
+  "author": "Arberim Ame, Blake Hakkila, Scott Thompson, Eric Vong",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/CS467SynchronousCommunicationPlatform/backend/issues"
+  },
+  "homepage": "https://github.com/CS467SynchronousCommunicationPlatform/backend#readme",
+  "dependencies": {
+    "express": "^4.21.1"
+  }
+}
