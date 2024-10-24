@@ -36,10 +36,15 @@ amqp.connect(process.env.RABBITMQ_URL)
 wss.on("connection", ws => {
   ws.on("message", message => {
     // verify structure of message from client
-    let json = JSON.parse(message)
+    try {
+      let json = JSON.parse(message)
+    } catch {
+      ws.send(JSON.stringify({ "error": `invalid json` }));
+      return;
+    }
     for (const key of ["id", "type", "message"]) {
       if (json[key] === undefined) {
-        ws.send(JSON.stringify({ "error": `${key} was not provided in message` }));
+        ws.send(JSON.stringify({ "error": `${key} was not provided in json` }));
         return;
       }
     }
