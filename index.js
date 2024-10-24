@@ -14,11 +14,15 @@ const GENERAL = "general";
 let clients = new Map()
 let channel;
 
+// connect to hosted rabbitmq
 amqp.connect(process.env.RABBITMQ_URL)
   .then(connection => connection.createChannel())
   .then(chan => {
+    // create general chat channel
     chan.assertQueue(GENERAL, { durable: true });
     channel = chan;
+
+    // register consumer for general chat, sends message to all sockets
     chan.consume(GENERAL, message => {
       for (const sock of wss.clients) {
         sock.send(message.content.toString())
@@ -28,8 +32,10 @@ amqp.connect(process.env.RABBITMQ_URL)
     throw err;
   });
 
+// handle websocket connections
 wss.on("connection", ws => {
   ws.on("message", message => {
+    // verify structure of message from client
     let json = JSON.parse(message)
     for (const key of ["id", "type", "message"]) {
       if (json[key] === undefined) {
@@ -37,7 +43,11 @@ wss.on("connection", ws => {
         return;
       }
     }
+
+    // map from client id to websocket connection
     clients[json.id] = ws;
+
+    // forward message to rabbitmq
     channel.sendToQueue(json.type, Buffer.from(json.message));
   })
 });
