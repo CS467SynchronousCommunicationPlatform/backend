@@ -49,8 +49,8 @@ app.get("/channels/:userId", async (req, res) => {
 })
 
 // endpoint for users in channel
-app.get("/users/:userId", async (req, res) => {
-  let userId = req.params.channelId;
+app.get("/users/:channelId", async (req, res) => {
+  let channelId = req.params.channelId;
   const { data, error } = await supabase
     .from('users')
     .select('display_name, channels_users!inner()')
