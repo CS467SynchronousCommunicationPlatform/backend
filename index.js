@@ -37,9 +37,20 @@ app.get("/", (req, res) => {
   res.send("Backend REST API running")
 })
 
+// endpoint for channels user is in
+app.get("/channels/:userId", async (req, res) => {
+  let userId = req.params.userId;
+  const { data, error } = await supabase
+    .from('channels')
+    .select('name, description, channels_users!inner()')
+    .eq('channels_users.user_id', userId)
+
+  res.send(data)
+})
+
 // endpoint for users in channel
-app.get("/users/:channelId", async (req, res) => {
-  let channelId = req.params.channelId;
+app.get("/users/:userId", async (req, res) => {
+  let userId = req.params.channelId;
   const { data, error } = await supabase
     .from('users')
     .select('display_name, channels_users!inner()')
