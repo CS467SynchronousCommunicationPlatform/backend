@@ -16,16 +16,39 @@ const io = new Server(server, { transports: ["websocket"] });
 // chat constants and globals
 let clients = new Map();
 
-io.on("connection", (socket) => {
-  // add socket to map of client connections
-  clients.set(socket.id, socket);
-  console.log(`${socket.id} client connected`);
+// helper function to report error on socket and in console log
+function error(socket, message) {
+  socket.emit("error", message);
+  console.error(message);
+}
 
-  // register disconnect to remove socket from client connections
+// Registers a client socket connection with the backend
+function registerConnection(socket) {
+  // verify the connection has a token
+  const token = socket.handshake.auth?.token;
+  if (token === undefined) {
+    error(socket, "Auth token not provided")
+    socket.disconnect();
+    return false;
+  }
+
+  // add socket to map of client connections
+  clients.set(token, socket);
+  console.debug(`${token} client connected`);
+
+  // register disconnect listener to remove socket from client connections
   socket.on("disconnect", () => {
-    clients.delete(socket.id);
-    console.log(`${socket.id} client disconnected`);
+    clients.delete(token);
+    console.debug(`${token} client disconnected`);
   });
+
+  return true;
+}
+
+io.on("connection", (socket) => {
+  // handle registering the client connection, return on failure
+  if (!registerConnection(socket))
+    return;
 });
 
 // basic REST endpoint
