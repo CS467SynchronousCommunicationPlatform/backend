@@ -6,15 +6,18 @@ import dotenv from "dotenv";
 import express from "express";
 import { createServer } from "node:http";
 import { Server } from "socket.io";
+import { createClient } from "@supabase/supabase-js";
 dotenv.config();
 
 // server constants
 const app = express();
 const server = createServer(app);
 const io = new Server(server, { transports: ["websocket"] });
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY)
 
-// chat constants and globals
-let clients = new Map();
+// global maps from user id to client info
+let clients = new Map(); // user id -> socket
+let displayNames = new Map(); // user id -> display name
 
 // helper function to report error on socket and in console log
 function error(socket, message) {
@@ -42,27 +45,43 @@ function isValidGeneralMessage(socket, message) {
     return false;
   }
 
+  if (!displayNames.has(message.user_id)) {
+    error(socket, `General message "user_id" is "${message.user_id}" which is not a registered user`)
+    return false;
+  }
+
   return true;
 }
 
 // Registers a client socket connection with the backend
-function registerConnection(socket) {
+async function registerConnection(socket) {
   // verify the connection has a token
-  const token = socket.handshake.auth?.token;
-  if (token === undefined) {
+  const user_id = socket.handshake.auth?.token;
+  if (user_id === undefined) {
     error(socket, "Auth token not provided")
     socket.disconnect();
     return false;
   }
 
+  // verify the token provided is a valid user id
+  if (!displayNames.has(user_id)) {
+    const { data, err } = await supabase.from("users").select("display_name").eq("id", user_id);
+    if (data === null || data.length === 0) {
+      error(socket, "Auth token does not match a user")
+      socket.disconnect();
+      return false;
+    }
+    displayNames.set(user_id, data[0].display_name);
+  }
+
   // add socket to map of client connections
-  clients.set(token, socket);
-  console.debug(`${token} client connected`);
+  clients.set(user_id, socket);
+  console.debug(`${user_id} client connected`);
 
   // register disconnect listener to remove socket from client connections
   socket.on("disconnect", () => {
-    clients.delete(token);
-    console.debug(`${token} client disconnected`);
+    clients.delete(user_id);
+    console.debug(`${user_id} client disconnected`);
   });
 
   return true;
@@ -75,6 +94,10 @@ function registerGeneralChatListener(socket) {
     if (!isValidGeneralMessage(socket, message))
       return;
 
+    // replace user id with user display name
+    message.user = displayNames.get(message.user_id);
+    delete message.user_id;
+
     // send general chat message to every other user
     for (const [user, other] of clients.entries()) {
       if (user !== socket.handshake.auth.token)
@@ -83,13 +106,16 @@ function registerGeneralChatListener(socket) {
   });
 }
 
-io.on("connection", (socket) => {
+io.on("connection", async (socket) => {
   // handle registering the client connection, return on failure
-  if (!registerConnection(socket))
+  if (!(await registerConnection(socket)))
     return;
 
   // register listeners for general chat
   registerGeneralChatListener(socket);
+
+  // send a message that the connection has been initialized
+  socket.emit("connection_complete");
 });
 
 // basic REST endpoint
