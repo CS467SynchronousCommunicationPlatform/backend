@@ -28,7 +28,7 @@ function error(socket, message) {
 // helper function to validate general chat message
 function isValidGeneralMessage(socket, message) {
   // check that the message has all required fields and they are strings
-  for (const field of ["body", "user_id", "timestamp"]) {
+  for (const field of ["body", "timestamp"]) {
     if (message[field] === undefined) {
       error(socket, `General message missing "${field}" property`);
       return false;
@@ -41,12 +41,7 @@ function isValidGeneralMessage(socket, message) {
 
   // check if created_at is a valid timestamp
   if (new Date(message.timestamp).toString() === "Invalid Date") {
-    error(socket, `General message "timestamp" is "${message.created_at}" which is not a valid timestamp`)
-    return false;
-  }
-
-  if (!displayNames.has(message.user_id)) {
-    error(socket, `General message "user_id" is "${message.user_id}" which is not a registered user`)
+    error(socket, `General message "timestamp" is "${message.timestamp}" which is not a valid timestamp`)
     return false;
   }
 
@@ -95,8 +90,7 @@ function registerGeneralChatListener(socket) {
       return;
 
     // replace user id with user display name
-    message.user = displayNames.get(message.user_id);
-    delete message.user_id;
+    message.user = displayNames.get(socket.handshake.auth.token);
 
     // send general chat message to every other user
     for (const [user, other] of clients.entries()) {
