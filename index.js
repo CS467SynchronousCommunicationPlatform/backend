@@ -51,38 +51,38 @@ function isValidGeneralMessage(socket, message) {
 // Registers a client socket connection with the backend
 async function registerConnection(socket) {
   // verify the connection has a token
-  const user_id = socket.handshake.auth?.token;
-  if (user_id === undefined) {
+  const userId = socket.handshake.auth?.token;
+  if (userId === undefined) {
     error(socket, "Auth token not provided")
     socket.disconnect();
     return false;
   }
 
   // verify the token provided is a valid user id
-  if (!displayNames.has(user_id)) {
-    const { data, err } = await supabase.from("users").select("display_name").eq("id", user_id);
+  if (!displayNames.has(userId)) {
+    const { data, err } = await supabase.from("users").select("display_name").eq("id", userId);
     if (data === null || data.length === 0) {
       error(socket, "Auth token does not match a user")
       socket.disconnect();
       return false;
     }
-    displayNames.set(user_id, data[0].display_name);
+    displayNames.set(userId, data[0].display_name);
   }
 
   // add socket to map of client connections
-  clients.set(user_id, socket);
-  console.debug(`${user_id} client connected`);
+  clients.set(userId, socket);
+  console.debug(`${userId} client connected`);
 
   // register disconnect listener to remove socket from client connections
   socket.on("disconnect", () => {
-    clients.delete(user_id);
-    console.debug(`${user_id} client disconnected`);
+    clients.delete(userId);
+    console.debug(`${userId} client disconnected`);
   });
 
   return true;
 }
 
-// Registers a client socket connection with the backend
+// Registers general chat listener for a client socket
 function registerGeneralChatListener(socket) {
   socket.on("general", (message) => {
     // validate message contents
@@ -100,16 +100,12 @@ function registerGeneralChatListener(socket) {
   });
 }
 
+// register connection and listeners
 io.on("connection", async (socket) => {
-  // handle registering the client connection, return on failure
   if (!(await registerConnection(socket)))
     return;
-
-  // register listeners for general chat
   registerGeneralChatListener(socket);
-
-  // send a message that the connection has been initialized
-  socket.emit("connection_complete");
+  socket.emit("connected", { status: "connected" });
 });
 
 // basic REST endpoint

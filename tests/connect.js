@@ -26,7 +26,8 @@ describe("Connection Tests", () => {
 
   it("Good Auth Connection", (done) => {
     const socket = io(SERVER, { auth: { token: process.env.TEST_USER1 }, transports: ["websocket"] })
-    socket.on("connection_complete", () => {
+    socket.on("connected", (msg) => {
+      assert.equal(msg.status, "connected");
       socket.disconnect();
       done();
     });
