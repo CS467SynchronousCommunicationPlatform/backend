@@ -11,6 +11,7 @@ dotenv.config();
 
 // server constants
 const app = express();
+app.use(express.json())
 const server = createServer(app);
 const io = new Server(server, { transports: ["websocket"] });
 
@@ -68,6 +69,18 @@ app.get("/messages/:channelId", async (req, res) => {
     .eq('channels_messages.channels_id', channelId)
 
   res.send(data)
+})
+
+// endpoint for adding message to channel
+app.post("/messages/", async (req, res) => {
+  const { data, error } = await supabase
+    .from('messages')
+    .insert({ body: req.body.message, user_id: req.body.user_id})
+    .select('id')
+
+  const { channels_messages_error } = await supabase
+  .from('channels_messages')
+  .insert({channels_id: req.body.channel_id, messages_id: data[0]['id']})
 })
 
 // start server
