@@ -40,6 +40,15 @@ app.get("/", (req, res) => {
   res.send("Backend REST API running")
 })
 
+// helper function for response sending
+function sendResponse(res, data, error, status) {
+  if (error) {
+    res.status(status).send(error)
+  } else {
+    res.status(status).send(data)
+  }
+}
+
 // endpoint for channels user is in
 app.get("/users/:userId/channels", async (req, res, next) => {
   try {
@@ -49,11 +58,7 @@ app.get("/users/:userId/channels", async (req, res, next) => {
       .select('name, description, channels_users!inner()')
       .eq('channels_users.user_id', userId)
 
-    if (error) {
-      res.send(error)
-    } else {
-      res.send(data)
-    }
+  sendResponse(res, data, error, status)
   } catch (err) {
     next(err)
   }
@@ -68,11 +73,7 @@ app.get("/channels/:channelId/users", async (req, res) => {
       .select('display_name, channels_users!inner()')
       .eq('channels_users.channel_id', channelId)
 
-    if (error) {
-      res.status(status).send(error)
-    } else {
-      res.status(status).send(data)
-    }
+    sendResponse(res, data, error, status)
   } catch (err) {
     next(err)
   }
@@ -87,11 +88,7 @@ app.get("/channels/:channelId/messages", async (req, res) => {
       .select('body, created_at, channels_messages!inner(), users!inner(display_name)')
       .eq('channels_messages.channels_id', channelId)
 
-    if (error) {
-      res.status(status).send(error)
-    } else {
-      res.status(status).send(data)
-    }
+    sendResponse(res, data, error, status)
   } catch (err) {
     next(err)
   }
