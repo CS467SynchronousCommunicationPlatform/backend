@@ -44,7 +44,7 @@ app.get("/", (req, res) => {
 app.get("/users/:userId/channels", async (req, res, next) => {
   try {
     let userId = req.params.userId;
-    const { data, error } = await supabase
+    const { data, error, status } = await supabase
       .from('channels')
       .select('name, description, channels_users!inner()')
       .eq('channels_users.user_id', userId)
@@ -63,15 +63,15 @@ app.get("/users/:userId/channels", async (req, res, next) => {
 app.get("/channels/:channelId/users", async (req, res) => {
   try {
     let channelId = req.params.channelId;
-    const { data, error } = await supabase
+    const { data, error, status } = await supabase
       .from('users')
       .select('display_name, channels_users!inner()')
       .eq('channels_users.channel_id', channelId)
 
     if (error) {
-      res.send(error)
+      res.status(status).send(error)
     } else {
-      res.send(data)
+      res.status(status).send(data)
     }
   } catch (err) {
     next(err)
@@ -82,15 +82,15 @@ app.get("/channels/:channelId/users", async (req, res) => {
 app.get("/channels/:channelId/messages", async (req, res) => {
   try {
     let channelId = req.params.channelId;
-    const { data, error } = await supabase
+    const { data, error, status } = await supabase
       .from('messages')
       .select('body, created_at, channels_messages!inner(), users!inner(display_name)')
       .eq('channels_messages.channels_id', channelId)
 
     if (error) {
-      res.send(error)
+      res.status(status).send(error)
     } else {
-      res.send(data)
+      res.status(status).send(data)
     }
   } catch (err) {
     next(err)
