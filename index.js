@@ -10,6 +10,7 @@ import { createClient } from "@supabase/supabase-js";
 dotenv.config();
 
 // server constants
+const PORT = 8000;
 const app = express();
 const server = createServer(app);
 const io = new Server(server, { transports: ["websocket"] });
@@ -114,6 +115,6 @@ app.get("/", (req, res) => {
 })
 
 // start server
-server.listen(process.env.PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server running at http://localhost:${process.env.PORT}`);
 });

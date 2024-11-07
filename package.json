@@ -5,7 +5,7 @@
   "description": "CS 467 Capstone - Synchronous Communication Platform Backend",
   "main": "index.js",
   "scripts": {
-    "run": "node index.js",
+    "start": "node index.js",
     "test": "mocha tests/"
   },
   "repository": {
