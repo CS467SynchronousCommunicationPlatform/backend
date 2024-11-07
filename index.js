@@ -7,11 +7,13 @@ import express from "express";
 import { createServer } from "node:http";
 import { Server } from "socket.io";
 import { createClient } from "@supabase/supabase-js"
+import { errorHandler } from "./middleware/error-handler";
 dotenv.config();
 
 // server constants
 const app = express();
 app.use(express.json())
+app.use(errorHandler)
 const server = createServer(app);
 const io = new Server(server, { transports: ["websocket"] });
 
@@ -39,48 +41,76 @@ app.get("/", (req, res) => {
 })
 
 // endpoint for channels user is in
-app.get("/users/:userId/channels", async (req, res) => {
-  let userId = req.params.userId;
-  const { data, error } = await supabase
-    .from('channels')
-    .select('name, description, channels_users!inner()')
-    .eq('channels_users.user_id', userId)
+app.get("/users/:userId/channels", async (req, res, next) => {
+  try {
+    let userId = req.params.userId;
+    const { data, error } = await supabase
+      .from('channels')
+      .select('name, description, channels_users!inner()')
+      .eq('channels_users.user_id', userId)
 
-  res.send(data)
+    if (error) {
+      res.send(error)
+    } else {
+      res.send(data)
+    }
+  } catch (err) {
+    next(err)
+  }
 })
 
 // endpoint for users in channel
 app.get("/channels/:channelId/users", async (req, res) => {
-  let channelId = req.params.channelId;
-  const { data, error } = await supabase
-    .from('users')
-    .select('display_name, channels_users!inner()')
-    .eq('channels_users.channel_id', channelId)
+  try {
+    let channelId = req.params.channelId;
+    const { data, error } = await supabase
+      .from('users')
+      .select('display_name, channels_users!inner()')
+      .eq('channels_users.channel_id', channelId)
 
-  res.send(data)
+    if (error) {
+      res.send(error)
+    } else {
+      res.send(data)
+    }
+  } catch (err) {
+    next(err)
+  }
 })
 
 // endpoint for messages in channel
 app.get("/channels/:channelId/messages", async (req, res) => {
-  let channelId = req.params.channelId;
-  const { data, error } = await supabase
-    .from('messages')
-    .select('body, created_at, channels_messages!inner(), users!inner(display_name)')
-    .eq('channels_messages.channels_id', channelId)
+  try {
+    let channelId = req.params.channelId;
+    const { data, error } = await supabase
+      .from('messages')
+      .select('body, created_at, channels_messages!inner(), users!inner(display_name)')
+      .eq('channels_messages.channels_id', channelId)
 
-  res.send(data)
+    if (error) {
+      res.send(error)
+    } else {
+      res.send(data)
+    }
+  } catch (err) {
+    next(err)
+  }
 })
 
 // endpoint for adding message to channel
 app.post("/messages/", async (req, res) => {
-  const { data, error } = await supabase
-    .from('messages')
-    .insert({ body: req.body.message, user_id: req.body.user_id})
-    .select('id')
+  try {
+    const { data, error } = await supabase
+      .from('messages')
+      .insert({ body: req.body.message, user_id: req.body.user_id})
+      .select('id')
 
-  const { channels_messages_error } = await supabase
-  .from('channels_messages')
-  .insert({channels_id: req.body.channel_id, messages_id: data[0]['id']})
+    const { channels_messages_error } = await supabase
+    .from('channels_messages')
+    .insert({channels_id: req.body.channel_id, messages_id: data[0]['id']})
+  } catch (err) {
+    next(err)
+  }
 })
 
 // start server
