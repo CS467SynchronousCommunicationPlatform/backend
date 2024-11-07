@@ -7,7 +7,7 @@ import express from "express";
 import { createServer } from "node:http";
 import { Server } from "socket.io";
 import { createClient } from "@supabase/supabase-js"
-import { errorHandler } from "./middleware/error-handler";
+import { errorHandler } from "./middleware/error-handler.js";
 dotenv.config();
 
 // server constants
