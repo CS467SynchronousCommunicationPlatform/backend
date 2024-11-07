@@ -39,7 +39,7 @@ app.get("/", (req, res) => {
 })
 
 // endpoint for channels user is in
-app.get("/channels/:userId", async (req, res) => {
+app.get("/users/:userId/channels", async (req, res) => {
   let userId = req.params.userId;
   const { data, error } = await supabase
     .from('channels')
@@ -50,7 +50,7 @@ app.get("/channels/:userId", async (req, res) => {
 })
 
 // endpoint for users in channel
-app.get("/users/:channelId", async (req, res) => {
+app.get("/channels/:channelId/users", async (req, res) => {
   let channelId = req.params.channelId;
   const { data, error } = await supabase
     .from('users')
@@ -61,7 +61,7 @@ app.get("/users/:channelId", async (req, res) => {
 })
 
 // endpoint for messages in channel
-app.get("/messages/:channelId", async (req, res) => {
+app.get("/channels/:channelId/messages", async (req, res) => {
   let channelId = req.params.channelId;
   const { data, error } = await supabase
     .from('messages')
