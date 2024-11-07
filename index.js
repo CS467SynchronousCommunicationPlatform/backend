@@ -65,7 +65,7 @@ app.get("/channels/:channelId/messages", async (req, res) => {
   let channelId = req.params.channelId;
   const { data, error } = await supabase
     .from('messages')
-    .select('body, channels_messages!inner()')
+    .select('body, created_at, channels_messages!inner(), users!inner(display_name)')
     .eq('channels_messages.channels_id', channelId)
 
   res.send(data)
