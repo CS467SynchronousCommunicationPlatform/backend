@@ -3,7 +3,7 @@ import { io } from "socket.io-client";
 import { assert } from "chai";
 dotenv.config();
 
-const SERVER = `http://localhost:${process.env.PORT}`
+const SERVER = "http://localhost:8000"
 
 describe("Connection Tests", () => {
   it("No Auth Connection", (done) => {

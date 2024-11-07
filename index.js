@@ -15,34 +15,35 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, { transports: ["websocket"] });
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY)
+let generalId;
 
 // global maps from user id to client info
 let clients = new Map(); // user id -> socket
 let displayNames = new Map(); // user id -> display name
 
 // helper function to report error on socket and in console log
-function error(socket, message) {
+function socket_error(socket, message) {
   socket.emit("error", message);
   console.error(message);
 }
 
 // helper function to validate general chat message
-function isValidGeneralMessage(socket, message) {
+function isValidChatMessage(socket, message) {
   // check that the message has all required fields and they are strings
   for (const field of ["body", "timestamp"]) {
     if (message[field] === undefined) {
-      error(socket, `General message missing "${field}" property`);
+      socket_error(socket, `Chat message missing "${field}" property`);
       return false;
     }
     if (typeof message[field] !== "string") {
-      error(socket, `General message "${field}" property is not a string`)
+      socket_error(socket, `Chat message "${field}" property is not a string`)
       return false;
     }
   }
 
   // check if created_at is a valid timestamp
   if (new Date(message.timestamp).toString() === "Invalid Date") {
-    error(socket, `General message "timestamp" is "${message.timestamp}" which is not a valid timestamp`)
+    socket_error(socket, `Chat message "timestamp" is "${message.timestamp}" which is not a valid timestamp`)
     return false;
   }
 
@@ -54,7 +55,7 @@ async function registerConnection(socket) {
   // verify the connection has a token
   const userId = socket.handshake.auth?.token;
   if (userId === undefined) {
-    error(socket, "Auth token not provided")
+    socket_error(socket, "Auth token not provided")
     socket.disconnect();
     return false;
   }
@@ -63,7 +64,7 @@ async function registerConnection(socket) {
   if (!displayNames.has(userId)) {
     const { data, err } = await supabase.from("users").select("display_name").eq("id", userId);
     if (data === null || data.length === 0) {
-      error(socket, "Auth token does not match a user")
+      socket_error(socket, "Auth token does not match a user")
       socket.disconnect();
       return false;
     }
@@ -84,28 +85,38 @@ async function registerConnection(socket) {
 }
 
 // Registers general chat listener for a client socket
-function registerGeneralChatListener(socket) {
-  socket.on("general", (message) => {
+function registerChatListener(socket) {
+  socket.on("general", async (message) => {
     // validate message contents
-    if (!isValidGeneralMessage(socket, message))
+    if (!isValidChatMessage(socket, message)) {
       return;
+    }
 
-    // replace user id with user display name
+    // add user display name using user id
     message.user = displayNames.get(socket.handshake.auth.token);
 
-    // send general chat message to every other user
-    for (const [user, other] of clients.entries()) {
-      if (user !== socket.handshake.auth.token)
-        other.emit("general", message);
+    // send chat message to every user
+    for (const connection of clients.values()) {
+      connection.emit("general", message);
     }
+
+    // persist message in database
+    const { data } = await supabase.from("messages")
+      .insert({ body: message.body, user_id: socket.handshake.auth.token, created_at: message.timestamp })
+      .select("id");
+
+    await supabase.from('channels_messages')
+      .insert({ channels_id: generalId, messages_id: data[0]["id"] })
   });
 }
 
 // register connection and listeners
 io.on("connection", async (socket) => {
-  if (!(await registerConnection(socket)))
+  if (!(await registerConnection(socket))) {
     return;
-  registerGeneralChatListener(socket);
+  }
+
+  registerChatListener(socket);
   socket.emit("connected", { status: "connected" });
 });
 
@@ -114,7 +125,36 @@ app.get("/", (req, res) => {
   res.send("Backend REST API running")
 })
 
-// start server
-server.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${process.env.PORT}`);
-});
+
+// initializes backend with necessary data from database
+async function initializeBackend() {
+  // get all display names for registered users
+  let users = await supabase
+    .from('users')
+    .select('id, display_name');
+
+  if (users.error) {
+    throw users.error;
+  }
+
+  for (const user of users.data) {
+    displayNames.set(user.id, user.display_name);
+  }
+
+  // get general chat id
+  const { data, error } = await supabase.from("channels").select("id").eq("name", "General Chat");
+  if (error) {
+    throw error;
+  }
+  generalId = data[0].id;
+}
+
+
+// initialize and then start server
+initializeBackend().then(() => {
+  server.listen(PORT, () => {
+    console.log(`Server running at http://localhost:${PORT}`);
+  });
+}).catch(err => {
+  console.error(`Backend startup failed: ${err}`);
+})
