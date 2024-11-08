@@ -86,7 +86,7 @@ app.get("/channels/:channelId/messages", async (req, res, next) => {
     const { data, error, status } = await supabase
       .from('messages')
       .select('body, created_at, channels_messages!inner(), users!inner(display_name)')
-      .eq('channels_messages.channels_id', channelId)
+      .eq('channels_messages.channel_id', channelId)
 
     sendResponse(res, data, error, status)
   } catch (err) {
