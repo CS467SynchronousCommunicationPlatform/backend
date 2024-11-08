@@ -4,6 +4,7 @@ https://socket.io/docs/v4/tutorial/step-3
 */
 import dotenv from "dotenv";
 import express from "express";
+import cors from "cors";
 import { createServer } from "node:http";
 import { Server } from "socket.io";
 import { createClient } from "@supabase/supabase-js"
@@ -13,6 +14,7 @@ dotenv.config();
 // server constants
 const PORT = 8000;
 const app = express();
+app.use(cors());
 app.use(express.json())
 app.use(errorHandler)
 const server = createServer(app);
@@ -183,7 +185,7 @@ app.get("/channels/:channelId/messages", async (req, res, next) => {
 })
 
 // endpoint for adding message to channel
-app.post("/messages/", async (req, res, next) => {
+app.post("/messages", async (req, res, next) => {
   try {
     const { data, error } = await supabase
       .from('messages')
