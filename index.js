@@ -5,7 +5,8 @@ https://socket.io/docs/v4/tutorial/step-3
 import dotenv from "dotenv";
 import express from "express";
 import cors from "cors";
-import { createServer } from "node:http";
+import { createServer } from "node:https";
+import { readFileSync } from "node:fs";
 import { Server } from "socket.io";
 import { createClient } from "@supabase/supabase-js"
 import { errorHandler } from "./middleware/error-handler.js";
@@ -13,14 +14,21 @@ dotenv.config();
 
 // server constants
 const PORT = 8000;
+let generalId;
+
 const app = express();
 app.use(cors());
 app.use(express.json())
 app.use(errorHandler)
-const server = createServer(app);
+
+const options = {
+  key: readFileSync("./selfsigned.key"),
+  cert: readFileSync("./selfsigned.crt")
+};
+const server = createServer(options, app);
+
 const io = new Server(server, { transports: ["websocket"] });
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY)
-let generalId;
 
 // global maps from user id to client info
 let clients = new Map(); // user id -> socket
@@ -227,7 +235,7 @@ async function initializeBackend() {
 // initialize and then start server
 initializeBackend().then(() => {
   server.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}`);
+    console.log(`Server running at https://localhost:${PORT}`);
   });
 }).catch(err => {
   console.error(`Backend startup failed: ${err}`);
