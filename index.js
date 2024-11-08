@@ -65,7 +65,7 @@ app.get("/users/:userId/channels", async (req, res, next) => {
 })
 
 // endpoint for users in channel
-app.get("/channels/:channelId/users", async (req, res) => {
+app.get("/channels/:channelId/users", async (req, res, next) => {
   try {
     let channelId = req.params.channelId;
     const { data, error, status } = await supabase
@@ -80,7 +80,7 @@ app.get("/channels/:channelId/users", async (req, res) => {
 })
 
 // endpoint for messages in channel
-app.get("/channels/:channelId/messages", async (req, res) => {
+app.get("/channels/:channelId/messages", async (req, res, next) => {
   try {
     let channelId = req.params.channelId;
     const { data, error, status } = await supabase
