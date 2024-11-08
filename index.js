@@ -11,28 +11,116 @@ import { errorHandler } from "./middleware/error-handler.js";
 dotenv.config();
 
 // server constants
+const PORT = 8000;
 const app = express();
 app.use(express.json())
 app.use(errorHandler)
 const server = createServer(app);
 const io = new Server(server, { transports: ["websocket"] });
-
-// supabase client
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY)
+let generalId;
 
-// chat constants and globals
-let clients = new Map();
+// global maps from user id to client info
+let clients = new Map(); // user id -> socket
+let displayNames = new Map(); // user id -> display name
 
-io.on("connection", (socket) => {
+// helper function to report error on socket and in console log
+function socket_error(socket, message) {
+  socket.emit("error", message);
+  console.error(message);
+}
+
+// helper function to validate general chat message
+function isValidChatMessage(socket, message) {
+  // check that the message has all required fields and they are strings
+  for (const field of ["body", "timestamp"]) {
+    if (message[field] === undefined) {
+      socket_error(socket, `Chat message missing "${field}" property`);
+      return false;
+    }
+    if (typeof message[field] !== "string") {
+      socket_error(socket, `Chat message "${field}" property is not a string`)
+      return false;
+    }
+  }
+
+  // check if created_at is a valid timestamp
+  if (new Date(message.timestamp).toString() === "Invalid Date") {
+    socket_error(socket, `Chat message "timestamp" is "${message.timestamp}" which is not a valid timestamp`)
+    return false;
+  }
+
+  return true;
+}
+
+// Registers a client socket connection with the backend
+async function registerConnection(socket) {
+  // verify the connection has a token
+  const userId = socket.handshake.auth?.token;
+  if (userId === undefined) {
+    socket_error(socket, "Auth token not provided")
+    socket.disconnect();
+    return false;
+  }
+
+  // verify the token provided is a valid user id
+  if (!displayNames.has(userId)) {
+    const { data, err } = await supabase.from("users").select("display_name").eq("id", userId);
+    if (data === null || data.length === 0) {
+      socket_error(socket, "Auth token does not match a user")
+      socket.disconnect();
+      return false;
+    }
+    displayNames.set(userId, data[0].display_name);
+  }
+
   // add socket to map of client connections
-  clients.set(socket.id, socket);
-  console.log(`${socket.id} client connected`);
+  clients.set(userId, socket);
+  console.debug(`${userId} client connected`);
 
-  // register disconnect to remove socket from client connections
+  // register disconnect listener to remove socket from client connections
   socket.on("disconnect", () => {
-    clients.delete(socket.id);
-    console.log(`${socket.id} client disconnected`);
+    clients.delete(userId);
+    console.debug(`${userId} client disconnected`);
   });
+
+  return true;
+}
+
+// Registers general chat listener for a client socket
+function registerChatListener(socket) {
+  socket.on("general", async (message) => {
+    // validate message contents
+    if (!isValidChatMessage(socket, message)) {
+      return;
+    }
+
+    // add user display name using user id
+    message.user = displayNames.get(socket.handshake.auth.token);
+
+    // send chat message to every user
+    for (const connection of clients.values()) {
+      connection.emit("general", message);
+    }
+
+    // persist message in database
+    const { data } = await supabase.from("messages")
+      .insert({ body: message.body, user_id: socket.handshake.auth.token, created_at: message.timestamp })
+      .select("id");
+
+    await supabase.from('channels_messages')
+      .insert({ channels_id: generalId, messages_id: data[0]["id"] })
+  });
+}
+
+// register connection and listeners
+io.on("connection", async (socket) => {
+  if (!(await registerConnection(socket))) {
+    return;
+  }
+
+  registerChatListener(socket);
+  socket.emit("connected", { status: "connected" });
 });
 
 // basic REST endpoint
@@ -58,7 +146,7 @@ app.get("/users/:userId/channels", async (req, res, next) => {
       .select('name, description, channels_users!inner()')
       .eq('channels_users.user_id', userId)
 
-  sendResponse(res, data, error, status)
+    sendResponse(res, data, error, status)
   } catch (err) {
     next(err)
   }
@@ -99,18 +187,46 @@ app.post("/messages/", async (req, res, next) => {
   try {
     const { data, error } = await supabase
       .from('messages')
-      .insert({ body: req.body.message, user_id: req.body.user_id})
+      .insert({ body: req.body.message, user_id: req.body.user_id })
       .select('id')
 
     const { channels_messages_error } = await supabase
-    .from('channels_messages')
-    .insert({channel_id: req.body.channel_id, message_id: data[0]['id']})
+      .from('channels_messages')
+      .insert({ channel_id: req.body.channel_id, message_id: data[0]['id'] })
   } catch (err) {
     next(err)
   }
 })
 
-// start server
-server.listen(process.env.PORT, () => {
-  console.log(`Server running at http://localhost:${process.env.PORT}`);
-});
+// initializes backend with necessary data from database
+async function initializeBackend() {
+  // get all display names for registered users
+  let users = await supabase
+    .from('users')
+    .select('id, display_name');
+
+  if (users.error) {
+    throw users.error;
+  }
+
+  for (const user of users.data) {
+    displayNames.set(user.id, user.display_name);
+  }
+
+  // get general chat id
+  const { data, error } = await supabase.from("channels").select("id").eq("name", "General Chat");
+  if (error) {
+    throw error;
+  }
+  generalId = data[0].id;
+}
+
+
+// initialize and then start server
+initializeBackend().then(() => {
+  server.listen(PORT, () => {
+    console.log(`Server running at http://localhost:${PORT}`);
+  });
+}).catch(err => {
+  console.error(`Backend startup failed: ${err}`);
+})
