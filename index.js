@@ -95,7 +95,7 @@ app.get("/channels/:channelId/messages", async (req, res) => {
 })
 
 // endpoint for adding message to channel
-app.post("/messages/", async (req, res) => {
+app.post("/messages/", async (req, res, next) => {
   try {
     const { data, error } = await supabase
       .from('messages')
@@ -104,7 +104,7 @@ app.post("/messages/", async (req, res) => {
 
     const { channels_messages_error } = await supabase
     .from('channels_messages')
-    .insert({channels_id: req.body.channel_id, messages_id: data[0]['id']})
+    .insert({channel_id: req.body.channel_id, message_id: data[0]['id']})
   } catch (err) {
     next(err)
   }
