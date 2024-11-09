@@ -13,7 +13,7 @@ import { errorHandler } from "./middleware/error-handler.js";
 dotenv.config();
 
 // server constants
-const PORT = 8000;
+const PORT = 443;
 let generalId;
 
 const app = express();
@@ -22,8 +22,8 @@ app.use(express.json())
 app.use(errorHandler)
 
 const options = {
-  key: readFileSync("./selfsigned.key"),
-  cert: readFileSync("./selfsigned.crt")
+  key: readFileSync("./backend.key"),
+  cert: readFileSync("./backend.crt")
 };
 const server = createServer(options, app);
 
