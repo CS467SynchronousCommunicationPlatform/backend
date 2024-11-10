@@ -126,9 +126,12 @@ function registerChatListener(socket) {
     // add user display name using user id
     message.user = displayNames.get(socket.handshake.auth.token);
 
-    // send chat message to every user in that channel
+    // send chat message to every online user in that channel
     for (const userId of channelUsers.get(message.channel_id)) {
-      clients.get(userId).emit("chat", message);
+      const socket = clients.get(userId);
+      if (socket !== undefined) {
+        socket.emit("chat", message);
+      }
     }
 
     // persist message in database
