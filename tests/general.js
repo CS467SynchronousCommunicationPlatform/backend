@@ -4,7 +4,8 @@ import { createClient } from "@supabase/supabase-js";
 import { assert } from "chai";
 dotenv.config();
 
-const SERVER = "http://localhost:8000"
+const LOCAL = process.env.DEPLOYED === undefined
+const SERVER = LOCAL ? "https://localhost" : process.env.DEPLOYED_URL;
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 const TIMESTAMP = "2024-11-01T06:25:51.182Z"
 const GENERAL = await supabase.from("channels")
@@ -17,8 +18,8 @@ describe("General Chat", () => {
   let socket1, socket2;
 
   beforeEach((done) => {
-    socket1 = io(SERVER, { auth: { token: process.env.TEST_USER1 }, transports: ["websocket"] });
-    socket2 = io(SERVER, { auth: { token: process.env.TEST_USER2 }, transports: ["websocket"] });
+    socket1 = io(SERVER, { auth: { token: process.env.TEST_USER1 }, transports: ["websocket"], rejectUnauthorized: !LOCAL });
+    socket2 = io(SERVER, { auth: { token: process.env.TEST_USER2 }, transports: ["websocket"], rejectUnauthorized: !LOCAL });
     setTimeout(done, 1000);
   });
 
@@ -119,7 +120,7 @@ describe("General Chat", () => {
       assert.equal(msg.channel_id, message.channel_id);
       assert.isDefined(msg.user);
 
-      // wait a moment for db persistence
+      // wait a moment for db persistence, assert message in database, then remove it
       setTimeout(async () => {
         // assert message entry in database
         const message_data = await supabase.from("messages")

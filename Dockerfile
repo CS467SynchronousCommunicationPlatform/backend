@@ -2,9 +2,7 @@ FROM node:20
 
 # copy over necessary files and install libraries
 WORKDIR /usr/src/app
-COPY .env ./
-COPY package.json ./
-COPY index.js ./
+COPY . .
 RUN npm install
 
 # expose port and run app
