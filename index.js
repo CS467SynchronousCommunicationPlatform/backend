@@ -140,7 +140,7 @@ function registerChatListener(socket) {
       .select("id");
 
     await supabase.from('channels_messages')
-      .insert({ channels_id: message.channel_id, messages_id: data[0]["id"] })
+      .insert({ channel_id: message.channel_id, message_id: data[0]["id"] })
   });
 }
 
