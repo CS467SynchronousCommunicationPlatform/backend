@@ -133,12 +133,12 @@ describe("General Chat", () => {
 
         // assert channels_messages entry in database
         const channel_data = await supabase.from("channels_messages")
-          .select("*").eq("messages_id", message_data[0].id)
+          .select("*").eq("message_id", message_data[0].id)
           .then(res => res.data);
         assert.notEqual(channel_data, null);
         assert.notEqual(channel_data.length, 0);
-        assert.equal(channel_data[0].messages_id, message_data[0].id);
-        assert.equal(channel_data[0].channels_id, GENERAL);
+        assert.equal(channel_data[0].message_id, message_data[0].id);
+        assert.equal(channel_data[0].channel_id, GENERAL);
 
         // remove test message
         await supabase.from("messages").delete().eq("id", message_data[0].id);
@@ -171,12 +171,12 @@ describe("General Chat", () => {
 
         // assert channels_messages entry in database
         const channel_data = await supabase.from("channels_messages")
-          .select("*").eq("messages_id", message_data[0].id)
+          .select("*").eq("message_id", message_data[0].id)
           .then(res => res.data);
         assert.notEqual(channel_data, null);
         assert.notEqual(channel_data.length, 0);
-        assert.equal(channel_data[0].messages_id, message_data[0].id);
-        assert.equal(channel_data[0].channels_id, TEST_PRIVATE_CHANNEL);
+        assert.equal(channel_data[0].message_id, message_data[0].id);
+        assert.equal(channel_data[0].channel_id, TEST_PRIVATE_CHANNEL);
 
         // remove test message
         await supabase.from("messages").delete().eq("id", message_data[0].id);
