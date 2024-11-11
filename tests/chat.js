@@ -11,7 +11,9 @@ const TIMESTAMP = "2024-11-01T06:25:51.182Z"
 const GENERAL = await supabase.from("channels")
   .select("id").eq("name", "General Chat")
   .then(result => result.data[0].id);
-const TEST_PRIVATE_CHANNEL = 2 //TODO replace with insert when insert is enabled
+const TEST_PRIVATE_CHANNEL = await supabase.from("channels") //TODO replace with insert when insert is enabled
+  .select("id").eq("name", "test_channel_2")
+  .then(result => result.data[0].id);
 
 
 describe("General Chat", () => {
