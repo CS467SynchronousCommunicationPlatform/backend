@@ -8,13 +8,12 @@ import cors from "cors";
 import { createServer } from "node:https";
 import { readFileSync } from "node:fs";
 import { Server } from "socket.io";
-import { createClient } from "@supabase/supabase-js"
 import { errorHandler } from "./middleware/error-handler.js";
+import * as model from "./model.js";
 dotenv.config();
 
 // server constants
 const PORT = 443;
-let generalId;
 
 const app = express();
 app.use(cors());
@@ -28,11 +27,11 @@ const options = {
 const server = createServer(options, app);
 
 const io = new Server(server, { transports: ["websocket"] });
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY)
 
 // global maps from user id to client info
 let clients = new Map(); // user id -> socket
 let displayNames = new Map(); // user id -> display name
+let channelUsers = new Map(); // channel id -> array of user ids
 
 // helper function to report error on socket and in console log
 function socket_error(socket, message) {
@@ -43,12 +42,18 @@ function socket_error(socket, message) {
 // helper function to validate general chat message
 function isValidChatMessage(socket, message) {
   // check that the message has all required fields and they are strings
-  for (const field of ["body", "timestamp"]) {
+  for (const field of ["body", "timestamp", "channel_id"]) {
     if (message[field] === undefined) {
       socket_error(socket, `Chat message missing "${field}" property`);
       return false;
     }
-    if (typeof message[field] !== "string") {
+    if (field === "channel_id") {
+      if (typeof message[field] !== "number") {
+        socket_error(socket, `Chat message "channel_id" property is not a number`)
+        return false;
+      }
+    }
+    else if (typeof message[field] !== "string") {
       socket_error(socket, `Chat message "${field}" property is not a string`)
       return false;
     }
@@ -57,6 +62,18 @@ function isValidChatMessage(socket, message) {
   // check if created_at is a valid timestamp
   if (new Date(message.timestamp).toString() === "Invalid Date") {
     socket_error(socket, `Chat message "timestamp" is "${message.timestamp}" which is not a valid timestamp`)
+    return false;
+  }
+
+  // check that channel_id is a valid channel
+  if (!channelUsers.has(message.channel_id)) {
+    socket_error(socket, `Chat message "channel_id" is "${message.channel_id}" which is not a valid channel`)
+    return false;
+  }
+
+  // check that this user is in the channel
+  if (!channelUsers.get(message.channel_id).includes(socket.handshake.auth.token)) {
+    socket_error(socket, `Chat message user is not a member of the chat with "channel_id" value "${message.channel_id}"`)
     return false;
   }
 
@@ -75,7 +92,7 @@ async function registerConnection(socket) {
 
   // verify the token provided is a valid user id
   if (!displayNames.has(userId)) {
-    const { data, err } = await supabase.from("users").select("display_name").eq("id", userId);
+    const { data } = await model.readUser(userId);
     if (data === null || data.length === 0) {
       socket_error(socket, "Auth token does not match a user")
       socket.disconnect();
@@ -97,29 +114,32 @@ async function registerConnection(socket) {
   return true;
 }
 
-// Registers general chat listener for a client socket
+// Registers chat listener for a client socket
 function registerChatListener(socket) {
-  socket.on("general", async (message) => {
+  socket.on("chat", async (message) => {
     // validate message contents
     if (!isValidChatMessage(socket, message)) {
       return;
     }
 
     // add user display name using user id
-    message.user = displayNames.get(socket.handshake.auth.token);
+    const userId = socket.handshake.auth.token;
+    message.user = displayNames.get(userId);
 
-    // send chat message to every user
-    for (const connection of clients.values()) {
-      connection.emit("general", message);
+    // send chat message to every online user in that channel
+    for (const userId of channelUsers.get(message.channel_id)) {
+      const socket = clients.get(userId);
+      if (socket !== undefined) {
+        socket.emit("chat", message);
+      }
     }
 
     // persist message in database
-    const { data } = await supabase.from("messages")
-      .insert({ body: message.body, user_id: socket.handshake.auth.token, created_at: message.timestamp })
-      .select("id");
-
-    await supabase.from('channels_messages')
-      .insert({ channel_id: generalId, message_id: data[0]["id"] })
+    model.insertMessage(message.body, userId, message.timestamp, message.channel_id)
+      .then(response => {
+        if (response.error)
+          socket_error(socket, "Message persistence failed")
+      });
   });
 }
 
@@ -136,7 +156,7 @@ io.on("connection", async (socket) => {
 // basic REST endpoint
 app.get("/", (req, res) => {
   res.send("Backend REST API running")
-})
+});
 
 // helper function for response sending
 function sendResponse(res, data, error, status) {
@@ -150,70 +170,37 @@ function sendResponse(res, data, error, status) {
 // endpoint for channels user is in
 app.get("/users/:userId/channels", async (req, res, next) => {
   try {
-    let userId = req.params.userId;
-    const { data, error, status } = await supabase
-      .from('channels')
-      .select('name, description, channels_users!inner()')
-      .eq('channels_users.user_id', userId)
-
-    sendResponse(res, data, error, status)
+    const { data, error, status } = await model.readAllChannelsForUser(req.params.userId);
+    sendResponse(res, data, error, status);
   } catch (err) {
     next(err)
   }
-})
+});
 
 // endpoint for users in channel
 app.get("/channels/:channelId/users", async (req, res, next) => {
   try {
-    let channelId = req.params.channelId;
-    const { data, error, status } = await supabase
-      .from('users')
-      .select('display_name, channels_users!inner()')
-      .eq('channels_users.channel_id', channelId)
-
-    sendResponse(res, data, error, status)
+    const { data, error, status } = await model.readAllUsersInChannel(req.params.channelId);
+    sendResponse(res, data, error, status);
   } catch (err) {
     next(err)
   }
-})
+});
 
 // endpoint for messages in channel
 app.get("/channels/:channelId/messages", async (req, res, next) => {
   try {
-    let channelId = req.params.channelId;
-    const { data, error, status } = await supabase
-      .from('messages')
-      .select('body, created_at, channels_messages!inner(), users!inner(display_name)')
-      .eq('channels_messages.channel_id', channelId)
-
-    sendResponse(res, data, error, status)
+    const { data, error, status } = await model.readAllMessagesInChannel(req.params.channelId);
+    sendResponse(res, data, error, status);
   } catch (err) {
     next(err)
   }
-})
-
-// endpoint for adding message to channel
-app.post("/messages", async (req, res, next) => {
-  try {
-    const { data, error } = await supabase
-      .from('messages')
-      .insert({ body: req.body.message, user_id: req.body.user_id })
-      .select('id')
-
-    const { channels_messages_error } = await supabase
-      .from('channels_messages')
-      .insert({ channel_id: req.body.channel_id, message_id: data[0]['id'] })
-  } catch (err) {
-    next(err)
-  }
-})
+});
 
 // initializes backend with necessary data from database
 async function initializeBackend() {
   // get all display names for registered users
-  let users = await supabase
-    .from('users')
-    .select('id, display_name');
+  let users = await model.readAllUsers();
 
   if (users.error) {
     throw users.error;
@@ -223,12 +210,20 @@ async function initializeBackend() {
     displayNames.set(user.id, user.display_name);
   }
 
-  // get general chat id
-  const { data, error } = await supabase.from("channels").select("id").eq("name", "General Chat");
+  // get all users for registered channels
+  const { data, error } = await model.readAllChannelsUsers();
+
   if (error) {
     throw error;
   }
-  generalId = data[0].id;
+
+  for (const row of data) {
+    if (channelUsers.has(row.channel_id)) {
+      channelUsers.get(row.channel_id).push(row.user_id);
+    } else {
+      channelUsers.set(row.channel_id, [row.user_id]);
+    }
+  }
 }
 
 
