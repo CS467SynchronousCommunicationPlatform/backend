@@ -10,6 +10,7 @@ import { readFileSync } from "node:fs";
 import { Server } from "socket.io";
 import { errorHandler } from "./middleware/error-handler.js";
 import * as model from "./model.js";
+import { logger } from "./logger.js";
 dotenv.config();
 
 // server constants
@@ -34,9 +35,9 @@ let displayNames = new Map(); // user id -> display name
 let channelUsers = new Map(); // channel id -> array of user ids
 
 // helper function to report error on socket and in console log
-function socket_error(socket, message) {
+function socketError(socket, message) {
   socket.emit("error", message);
-  console.error(message);
+  logger.socket(message);
 }
 
 // helper function to validate general chat message
@@ -44,36 +45,36 @@ function isValidChatMessage(socket, message) {
   // check that the message has all required fields and they are strings
   for (const field of ["body", "timestamp", "channel_id"]) {
     if (message[field] === undefined) {
-      socket_error(socket, `Chat message missing "${field}" property`);
+      socketError(socket, `Chat message missing "${field}" property`);
       return false;
     }
     if (field === "channel_id") {
       if (typeof message[field] !== "number") {
-        socket_error(socket, `Chat message "channel_id" property is not a number`)
+        socketError(socket, `Chat message "channel_id" property is not a number`)
         return false;
       }
     }
     else if (typeof message[field] !== "string") {
-      socket_error(socket, `Chat message "${field}" property is not a string`)
+      socketError(socket, `Chat message "${field}" property is not a string`)
       return false;
     }
   }
 
   // check if created_at is a valid timestamp
   if (new Date(message.timestamp).toString() === "Invalid Date") {
-    socket_error(socket, `Chat message "timestamp" is "${message.timestamp}" which is not a valid timestamp`)
+    socketError(socket, `Chat message "timestamp" is "${message.timestamp}" which is not a valid timestamp`)
     return false;
   }
 
   // check that channel_id is a valid channel
   if (!channelUsers.has(message.channel_id)) {
-    socket_error(socket, `Chat message "channel_id" is "${message.channel_id}" which is not a valid channel`)
+    socketError(socket, `Chat message "channel_id" is "${message.channel_id}" which is not a valid channel`)
     return false;
   }
 
   // check that this user is in the channel
   if (!channelUsers.get(message.channel_id).includes(socket.handshake.auth.token)) {
-    socket_error(socket, `Chat message user is not a member of the chat with "channel_id" value "${message.channel_id}"`)
+    socketError(socket, `Chat message user is not a member of the chat with "channel_id" value "${message.channel_id}"`)
     return false;
   }
 
@@ -85,7 +86,7 @@ async function registerConnection(socket) {
   // verify the connection has a token
   const userId = socket.handshake.auth?.token;
   if (userId === undefined) {
-    socket_error(socket, "Auth token not provided")
+    socketError(socket, "Auth token not provided")
     socket.disconnect();
     return false;
   }
@@ -94,7 +95,7 @@ async function registerConnection(socket) {
   if (!displayNames.has(userId)) {
     const { data } = await model.readUser(userId);
     if (data === null || data.length === 0) {
-      socket_error(socket, "Auth token does not match a user")
+      socketError(socket, "Auth token does not match a user")
       socket.disconnect();
       return false;
     }
@@ -103,12 +104,12 @@ async function registerConnection(socket) {
 
   // add socket to map of client connections
   clients.set(userId, socket);
-  console.debug(`${userId} client connected`);
+  logger.socket(`${userId} client connected`);
 
   // register disconnect listener to remove socket from client connections
   socket.on("disconnect", () => {
     clients.delete(userId);
-    console.debug(`${userId} client disconnected`);
+    logger.socket(`${userId} client disconnected`);
   });
 
   return true;
@@ -138,7 +139,7 @@ function registerChatListener(socket) {
     model.insertMessage(message.body, userId, message.timestamp, message.channel_id)
       .then(response => {
         if (response.error)
-          socket_error(socket, "Message persistence failed")
+          socketError(socket, "Message persistence failed")
       });
   });
 }
@@ -230,8 +231,8 @@ async function initializeBackend() {
 // initialize and then start server
 initializeBackend().then(() => {
   server.listen(PORT, () => {
-    console.log(`Server running at https://localhost:${PORT}`);
+    logger.info(`Server running at https://localhost:${PORT}`);
   });
 }).catch(err => {
-  console.error(`Backend startup failed: ${err}`);
+  logger.error(`Backend startup failed: ${err}`);
 })
