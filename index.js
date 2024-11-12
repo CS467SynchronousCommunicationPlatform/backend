@@ -198,6 +198,13 @@ app.get("/channels/:channelId/messages", async (req, res, next) => {
   }
 });
 
+// catch any non-specified endpoints and report error
+app.all("*", (req, res) => {
+  const errorMsg = `Invalid method or endpoint: ${req.method} ${req.protocol}://${req.hostname}${req.url}`
+  logger.http(errorMsg);
+  res.status(400).send({ "Error": errorMsg })
+});
+
 // initializes backend with necessary data from database
 async function initializeBackend() {
   // get all display names for registered users
