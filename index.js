@@ -134,7 +134,7 @@ function registerChatListener(socket) {
       const socket = clients.get(userId);
       if (socket !== undefined) {
         socket.emit("chat", message);
-        logger.socket(`Sending ${message} to ${userId} socket`);
+        logger.socket(`Sending ${JSON.stringify(message)} to ${userId} socket`);
       }
     }
 
