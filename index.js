@@ -9,6 +9,7 @@ import { createServer } from "node:https";
 import { readFileSync } from "node:fs";
 import { Server } from "socket.io";
 import { errorHandler } from "./middleware/error-handler.js";
+import { logHandler, requestString } from "./middleware/log-handler.js";
 import * as model from "./model.js";
 import { logger } from "./logger.js";
 dotenv.config();
@@ -19,7 +20,8 @@ const PORT = 443;
 const app = express();
 app.use(cors());
 app.use(express.json())
-app.use(errorHandler)
+app.use(errorHandler);
+app.use(logHandler);
 
 const options = {
   key: readFileSync("./backend.key"),
@@ -132,6 +134,7 @@ function registerChatListener(socket) {
       const socket = clients.get(userId);
       if (socket !== undefined) {
         socket.emit("chat", message);
+        logger.socket(`Sending ${message} to ${userId} socket`);
       }
     }
 
@@ -152,6 +155,7 @@ io.on("connection", async (socket) => {
 
   registerChatListener(socket);
   socket.emit("connected", { status: "connected" });
+  logger.socket(`Socket initialization completed for ${socket.handshake.auth.token}`)
 });
 
 // basic REST endpoint
@@ -162,8 +166,10 @@ app.get("/", (req, res) => {
 // helper function for response sending
 function sendResponse(res, data, error, status) {
   if (error) {
+    logger.http(`REST status ${status} error ${JSON.stringify(error)}`);
     res.status(status).send(error)
   } else {
+    logger.http(`REST status ${status} response ${JSON.stringify(data)}`);
     res.status(status).send(data)
   }
 }
@@ -200,7 +206,7 @@ app.get("/channels/:channelId/messages", async (req, res, next) => {
 
 // catch any non-specified endpoints and report error
 app.all("*", (req, res) => {
-  const errorMsg = `Invalid method or endpoint: ${req.method} ${req.protocol}://${req.hostname}${req.url}`
+  const errorMsg = `Invalid method or endpoint: ${requestString(req)}`
   logger.http(errorMsg);
   res.status(400).send({ "Error": errorMsg })
 });
