@@ -8,7 +8,7 @@ const LOCAL = process.env.DEPLOYED === undefined
 const SERVER = LOCAL ? "https://localhost" : process.env.DEPLOYED_URL;
 const TIMESTAMP = "2024-11-01T06:25:51.182Z"
 
-describe("General Chat", () => {
+describe("Chat Tests", () => {
   let socket1, socket2, supabase, GENERAL, TEST_PRIVATE_CHANNEL;
 
   before(async () => {
