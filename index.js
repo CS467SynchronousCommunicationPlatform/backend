@@ -197,6 +197,16 @@ app.get("/channels/:channelId/messages", async (req, res, next) => {
   }
 });
 
+// endpoint for updating unread notifications
+app.post("/notifications/channels/users", async (req, res, next) => {
+  try {
+    const { data, error, status } = await model.updateUnreadMessage(req.body.function, req.body.userId, req.body.channelId);
+    console.log(error)
+  } catch (err) {
+    next(err)
+  }
+});
+
 // initializes backend with necessary data from database
 async function initializeBackend() {
   // get all display names for registered users

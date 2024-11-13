@@ -39,14 +39,9 @@ export async function readAllChannelsForUser(userId) {
     .eq('channels_users.user_id', userId);
 }
 
-export async function incUnreadMessage(userId, channelId) {
+export async function updateUnreadMessage(func, userId, channelId) {
   return await supabase
-    .rpc('increment', {x:1, user_id: userId, channel_id: channelId})
-}
-
-export async function decUnreadMessage(userId, channelId) {
-  return await supabase
-    .rpc('decrement', {x:1, user_id: userId, channel_id: channelId})
+    .rpc(func, {userid: userId, channelid: channelId});
 }
 
 // messages functions
