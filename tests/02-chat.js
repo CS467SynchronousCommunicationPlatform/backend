@@ -12,6 +12,10 @@ describe("Chat Tests", () => {
   let socket1, socket2, supabase, GENERAL, TEST_PRIVATE_CHANNEL;
 
   before(async () => {
+    // connect sockets
+    socket1 = io(SERVER, { auth: { token: process.env.TEST_USER1 }, transports: ["websocket"], rejectUnauthorized: !LOCAL });
+    socket2 = io(SERVER, { auth: { token: process.env.TEST_USER2 }, transports: ["websocket"], rejectUnauthorized: !LOCAL });
+
     // connect to db and get channel values from database
     supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
     GENERAL = await supabase.from("channels")
@@ -20,10 +24,6 @@ describe("Chat Tests", () => {
     TEST_PRIVATE_CHANNEL = await supabase.from("channels") //TODO replace with insert when insert is enabled
       .select("id").eq("name", "test_channel_2")
       .then(result => result.data[0].id);
-
-    // connect sockets
-    socket1 = io(SERVER, { auth: { token: process.env.TEST_USER1 }, transports: ["websocket"], rejectUnauthorized: !LOCAL });
-    socket2 = io(SERVER, { auth: { token: process.env.TEST_USER2 }, transports: ["websocket"], rejectUnauthorized: !LOCAL });
   });
 
   after(() => {

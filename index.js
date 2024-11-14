@@ -83,6 +83,40 @@ function isValidChatMessage(socket, message) {
   return true;
 }
 
+// Register a new user that has connected
+async function registerNewUser(socket, userId) {
+  let data, error;
+
+  // check user id, add user if valid
+  ({ data } = await model.readUser(userId));
+  if (data === null || data.length === 0) {
+    socketError(socket, "Auth token does not match a user")
+    socket.disconnect();
+    return false;
+  }
+  displayNames.set(userId, data[0].display_name);
+
+  // fetch channels for user
+  ({ data, error } = await model.readAllChannelsForUser(userId));
+  if (error) {
+    socketError(socket, "User initialization failed, could not get channels")
+    socket.disconnect();
+    return false;
+  }
+
+  // add user to channels
+  for (const { id } of data) {
+    if (channelUsers.has(id)) {
+      channelUsers.get(id).push(userId);
+    } else {
+      channelUsers.set(id, [userId]);
+    }
+  }
+
+  logger.socket(`Added new user ${userId}`);
+  return true;
+}
+
 // Registers a client socket connection with the backend
 async function registerConnection(socket) {
   // verify the connection has a token
@@ -93,15 +127,11 @@ async function registerConnection(socket) {
     return false;
   }
 
-  // verify the token provided is a valid user id
+  // if the user has not been added already, verify the user id and add them
   if (!displayNames.has(userId)) {
-    const { data } = await model.readUser(userId);
-    if (data === null || data.length === 0) {
-      socketError(socket, "Auth token does not match a user")
-      socket.disconnect();
+    if (!(await registerNewUser(socket, userId))) {
       return false;
     }
-    displayNames.set(userId, data[0].display_name);
   }
 
   // add socket to map of client connections
@@ -139,11 +169,11 @@ function registerChatListener(socket) {
     }
 
     // persist message in database
-    model.insertMessage(message.body, userId, message.timestamp, message.channel_id)
-      .then(response => {
-        if (response.error)
-          socketError(socket, "Message persistence failed")
-      });
+    const { error } = await model.insertMessage(message.body, userId, message.timestamp, message.channel_id);
+    if (error) {
+      socketError(socket, "Message persistence failed");
+      return;
+    }
   });
 }
 
@@ -213,29 +243,31 @@ app.all("*", (req, res) => {
 
 // initializes backend with necessary data from database
 async function initializeBackend() {
+  let data, error;
+
   // get all display names for registered users
-  let users = await model.readAllUsers();
-
-  if (users.error) {
-    throw users.error;
-  }
-
-  for (const user of users.data) {
-    displayNames.set(user.id, user.display_name);
-  }
-
-  // get all users for registered channels
-  const { data, error } = await model.readAllChannelsUsers();
+  ({ data, error } = await model.readAllUsers());
 
   if (error) {
     throw error;
   }
 
-  for (const row of data) {
-    if (channelUsers.has(row.channel_id)) {
-      channelUsers.get(row.channel_id).push(row.user_id);
+  for (const { id, display_name } of data) {
+    displayNames.set(id, display_name);
+  }
+
+  // get all users for registered channels
+  ({ data, error } = await model.readAllChannelsUsers());
+
+  if (error) {
+    throw error;
+  }
+
+  for (const { channel_id, user_id } of data) {
+    if (channelUsers.has(channel_id)) {
+      channelUsers.get(channel_id).push(user_id);
     } else {
-      channelUsers.set(row.channel_id, [row.user_id]);
+      channelUsers.set(channel_id, [user_id]);
     }
   }
 }
