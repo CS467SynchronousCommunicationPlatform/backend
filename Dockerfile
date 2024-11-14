@@ -6,5 +6,5 @@ COPY . .
 RUN npm install
 
 # expose port and run app
-EXPOSE 8000
+EXPOSE 443
 CMD ["node", "index.js"]

@@ -6,29 +6,38 @@ dotenv.config();
 
 const LOCAL = process.env.DEPLOYED === undefined
 const SERVER = LOCAL ? "https://localhost" : process.env.DEPLOYED_URL;
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 const TIMESTAMP = "2024-11-01T06:25:51.182Z"
-const GENERAL = await supabase.from("channels")
-  .select("id").eq("name", "General Chat")
-  .then(result => result.data[0].id);
-const TEST_PRIVATE_CHANNEL = await supabase.from("channels") //TODO replace with insert when insert is enabled
-  .select("id").eq("name", "test_channel_2")
-  .then(result => result.data[0].id);
 
+describe("Chat Tests", () => {
+  let socket1, socket2, supabase, GENERAL, TEST_PRIVATE_CHANNEL;
 
-describe("General Chat", () => {
-  let socket1, socket2;
+  before(async () => {
+    // connect to db and get channel values from database
+    supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+    GENERAL = await supabase.from("channels")
+      .select("id").eq("name", "General Chat")
+      .then(result => result.data[0].id);
+    TEST_PRIVATE_CHANNEL = await supabase.from("channels") //TODO replace with insert when insert is enabled
+      .select("id").eq("name", "test_channel_2")
+      .then(result => result.data[0].id);
 
-  beforeEach((done) => {
+    // connect sockets
     socket1 = io(SERVER, { auth: { token: process.env.TEST_USER1 }, transports: ["websocket"], rejectUnauthorized: !LOCAL });
     socket2 = io(SERVER, { auth: { token: process.env.TEST_USER2 }, transports: ["websocket"], rejectUnauthorized: !LOCAL });
-    setTimeout(done, 1000);
   });
 
-  afterEach(() => {
+  after(() => {
     socket1.disconnect();
     socket2.disconnect();
   });
+
+  afterEach(() => {
+    // unregister listeners between tests
+    socket1.off("error");
+    socket1.off("chat");
+    socket2.off("error");
+    socket2.off("chat");
+  })
 
   it("Missing body message field", (done) => {
     socket1.on("error", (err) => {
