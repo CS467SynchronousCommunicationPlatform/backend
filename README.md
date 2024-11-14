@@ -147,13 +147,13 @@ Response
 
 Request
 
-`POST /notifications/channels/users`
+`PUT /notifications`
 
-| param     | type             |
-|-----------|------------------|
-| func      | string           |
-| userId    | uuid             |
-| channelId | unsigned integer |
+| body param  | type                                                      |
+|-------------|-----------------------------------------------------------|
+| func        | string ("incrementnotifications" or "clearnotifications") |
+| userId      | uuid                                                      |
+| channelId   | unsigned integer                                          |
 
 Response
 
