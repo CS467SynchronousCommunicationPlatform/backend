@@ -143,6 +143,25 @@ Response
 | 200 OK          | array of Messages |
 | 400 Bad Request | Error             |
 
+#### Update unread notifications
+
+Request
+
+`POST /notifications/channels/users`
+
+| param     | type             |
+|-----------|------------------|
+| func      | string           |
+| userId    | uuid             |
+| channelId | unsigned integer |
+
+Response
+
+| status          | JSON              |
+|-----------------|-------------------|
+| 204 No Content  | Null              |
+| 404 Not Found   | Error             |
+
 ## Developer Reference
 
 ### Running
