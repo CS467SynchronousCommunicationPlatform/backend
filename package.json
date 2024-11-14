@@ -25,10 +25,12 @@
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
     "socket.io": "^4.8.1",
-    "socket.io-client": "^4.8.1"
+    "socket.io-client": "^4.8.1",
+    "winston": "^3.17.0"
   },
   "devDependencies": {
     "chai": "^5.1.2",
-    "mocha": "^10.8.2"
+    "mocha": "^10.8.2",
+    "node-fetch": "^3.3.2"
   }
 }
