@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 import { assert } from "chai";
 import fetch from "node-fetch";
-import { Agent } from "node:https"
+import { Agent } from "node:https";
 dotenv.config();
 
 const LOCAL = process.env.DEPLOYED === undefined
@@ -25,6 +25,18 @@ describe("REST API Tests", () => {
       return resp.json();
     }).then(json => {
       assert.deepEqual(json, { "Error": "Invalid method or endpoint: GET https://localhost/bad" });
+    });
+    
+  });
+
+  it("Insert channel", async () => {
+    await fetch(`${SERVER}/channels`, {
+      agent: agent,
+      headers: { "Content-Type": "application/json" },
+      method: "POST",
+      body: JSON.stringify({ name: "General Chat", description: "Channel insert test" })
+    }).then(resp => {
+      assert.equal(resp.status, 201);
     });
   });
 });
