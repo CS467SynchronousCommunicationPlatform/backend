@@ -11,11 +11,16 @@ const SERVER = LOCAL ? "https://localhost" : process.env.DEPLOYED_URL;
 describe("REST API Tests", () => {
   const agent = LOCAL ? new Agent({ rejectUnauthorized: false }) : undefined;
 
-  let supabase;
+  let supabase, userId, channelId, channelId2
 
   before(async () => {
     // connect to db
     supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+
+    // define constants
+    userId = "0b139386-a0e1-4f4c-81ba-5e0241b8cd19";
+    channelId = 37;
+    channelId2 = 36;
   });
 
   it("/ server status", async () => {
@@ -80,5 +85,55 @@ describe("REST API Tests", () => {
       assert.equal(resp.status, 400);
     });
   });
+
+    // test for notifications update
+    async function getUnread(channel) {
+      const { data, error, status } = await supabase
+      .from('channels_users')
+      .select('unread')
+      .eq('user_id', userId)
+      .eq('channel_id', channel)
+      
+      return data[0].unread;
+    };
+
+    it("Increment unread notifications", async () => {
+      let body = JSON.stringify({ 
+        function: "incrementnotifications",
+        userId: userId,
+        channelId: channelId
+      });
+      await fetch(`${SERVER}/notifications`, defineReq("PUT", body)).then(resp => {
+        assert.equal(resp.status, 204);
+      });
+      assert.equal(await getUnread(channelId), 1);
+
+      // reset unread value
+      await supabase.from('channels_users').update({ unread: 0 }).eq('user_id', userId).eq('channel_id', channelId);
+    });
+
+
+    it("Clear unread notifications", async () => {
+      let body = JSON.stringify({
+        function: "clearnotifications",
+        userId: userId,
+        channelId: channelId2
+      });
+      await fetch(`${SERVER}/notifications`, defineReq("PUT", body)).then(resp => {
+        assert.equal(resp.status, 204);
+      });
+      assert.equal(await getUnread(channelId2), 0);
+      
+      // reset unread value
+      await supabase.from('channels_users').update({ unread: 1 }).eq('user_id', userId).eq('channel_id', channelId2);
+    });
+
+    it("Invalid function", async () => {
+      let body = JSON.stringify({ function: "notafunction" });
+      await fetch(`${SERVER}/notifications`, defineReq("PUT", body)).then(resp => {
+        assert.equal(resp.status, 404);
+      });
+    });
+
 
 });
