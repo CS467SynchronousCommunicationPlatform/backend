@@ -38,11 +38,11 @@ describe("REST API Tests", () => {
   });
 
   // test for insert channel endpoint
-  function definePost(body) {
+  function defineReq(method, body) {
     let req = {
       agent: agent,
       headers: { "Content-Type": "application/json" },
-      method: "POST",
+      method: method,
       body: body
     }
     return req
@@ -50,11 +50,11 @@ describe("REST API Tests", () => {
 
   it("Insert channel", async () => {
     let body = JSON.stringify({ name: "General Chat", description: "Channel insert test" });
-    await fetch(`${SERVER}/channels`, definePost(body)).then(resp => { 
+    await fetch(`${SERVER}/channels`, defineReq("POST", body)).then(resp => { 
       assert.equal(resp.status, 201);
     });
 
-      // delete test row
+    // delete test row
     const { data } = await supabase
       .from('channels')
       .select("id")
@@ -69,17 +69,16 @@ describe("REST API Tests", () => {
 
   it("Insert channel missing name", async () => {
     let body = JSON.stringify({ description: "Channel insert test" })
-    await fetch(`${SERVER}/channels`, definePost(body)).then(resp => {
+    await fetch(`${SERVER}/channels`, defineReq("POST", body)).then(resp => {
       assert.equal(resp.status, 400);
     });
   });
 
   it("Insert channel missing description", async () => {
     let body = JSON.stringify({ name: "Channel insert test" })
-    await fetch(`${SERVER}/channels`, definePost(body)).then(resp => {
+    await fetch(`${SERVER}/channels`, defineReq("POST", body)).then(resp => {
       assert.equal(resp.status, 400);
     });
   });
 
-  // test for insert message
 });
