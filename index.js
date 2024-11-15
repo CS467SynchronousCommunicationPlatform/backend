@@ -197,7 +197,8 @@ app.get("/channels/:channelId/users", async (req, res, next) => {
 // endpoint for creating channels
 app.post("/channels", async (req, res, next) => {
   try {
-    const {data, error, status } = await model.addChannels(req.body.name, req.body.description);
+    const { data, error, status } = await model.addChannels(req.body.name, req.body.description);
+    sendResponse(res, data, error, status);
   } catch (err) {
     next(err)
   }
@@ -206,7 +207,8 @@ app.post("/channels", async (req, res, next) => {
 // endpoint for adding users to channels
 app.post("/channels/:channelId/user", async (req, res, next) => {
   try {
-    const { data, error, status } = await model.addChannelsUsers(req.params.channelId, req.body.userId)
+    const { data, error, status } = await model.addChannelsUsers(req.body.channelId, req.body.userId);
+    sendResponse(res, data, error, status);
   } catch (err) {
     next(err)
   }
@@ -226,6 +228,7 @@ app.get("/channels/:channelId/messages", async (req, res, next) => {
 app.put("/notifications", async (req, res, next) => {
   try {
     const { data, error, status } = await model.updateUnreadMessage(req.body.function, req.body.userId, req.body.channelId);
+    sendResponse(res, data, error, status);
   } catch (err) {
     next(err)
   }
