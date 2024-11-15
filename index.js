@@ -194,6 +194,24 @@ app.get("/channels/:channelId/users", async (req, res, next) => {
   }
 });
 
+// endpoint for creating channels
+app.post("/channels", async (req, res, next) => {
+  try {
+    const {data, error, status } = await model.addChannels(req.body.name, req.body.description);
+  } catch (err) {
+    next(err)
+  }
+});
+
+// endpoint for adding users to channels
+app.post("/channels/users", async (req, res, next) => {
+  try {
+    const { data, error, status } = await model.addChannelsUsers(req.body.channelId, req.body.userId)
+  } catch (err) {
+    next(err)
+  }
+})
+
 // endpoint for messages in channel
 app.get("/channels/:channelId/messages", async (req, res, next) => {
   try {

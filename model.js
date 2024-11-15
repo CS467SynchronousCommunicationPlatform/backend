@@ -39,6 +39,18 @@ export async function readAllChannelsForUser(userId) {
     .eq('channels_users.user_id', userId);
 }
 
+export async function addChannels(name, description) {
+  return await supabase
+    .from('channels')
+    .insert({ name: name, description: description })
+}
+
+export async function addChannelsUsers(channelId, userId) {
+  return await supabase
+    .from('channels_users')
+    .insert({ channel_id: channelId, user_id: userId})
+}
+
 export async function updateUnreadMessage(func, userId, channelId) {
   return await supabase
     .rpc(func, {userid: userId, channelid: channelId});
