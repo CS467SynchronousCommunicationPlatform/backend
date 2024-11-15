@@ -204,7 +204,7 @@ app.post("/channels", async (req, res, next) => {
 });
 
 // endpoint for adding users to channels
-app.post("/channels/users", async (req, res, next) => {
+app.post("/channels/user", async (req, res, next) => {
   try {
     const { data, error, status } = await model.addChannelsUsers(req.body.channelId, req.body.userId)
   } catch (err) {
