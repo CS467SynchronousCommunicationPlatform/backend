@@ -29,14 +29,34 @@ describe("REST API Tests", () => {
     
   });
 
-  it("Insert channel", async () => {
-    await fetch(`${SERVER}/channels`, {
+  function definePost(body) {
+    let req = {
       agent: agent,
       headers: { "Content-Type": "application/json" },
       method: "POST",
-      body: JSON.stringify({ name: "General Chat", description: "Channel insert test" })
-    }).then(resp => {
+      body: body
+    }
+    return req
+  }
+
+  it("Insert channel", async () => {
+    let body = JSON.stringify({ name: "General Chat", description: "Channel insert test" });
+    await fetch(`${SERVER}/channels`, definePost(body)).then(resp => {
       assert.equal(resp.status, 201);
+    });
+  });
+
+  it("Insert channel missing name", async () => {
+    let body = JSON.stringify({ description: "Channel insert test" })
+    await fetch(`${SERVER}/channels`, definePost(body)).then(resp => {
+      assert.equal(resp.status, 400);
+    });
+  });
+
+  it("Insert channel missing description", async () => {
+    let body = JSON.stringify({ name: "Channel insert test" })
+    await fetch(`${SERVER}/channels`, definePost(body)).then(resp => {
+      assert.equal(resp.status, 400);
     });
   });
 });
