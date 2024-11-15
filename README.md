@@ -143,6 +143,42 @@ Response
 | 200 OK          | array of Messages |
 | 400 Bad Request | Error             |
 
+#### Create new channel
+
+Request
+
+`POST /channel`
+
+| body param  | type   |
+|-------------|--------|
+| name        | string |
+| description | string |
+
+Response
+
+| status           | JSON              |
+|------------------|-------------------|
+| 204 No Content   | Null              |
+| 401 Unauthorized | Error             |
+
+#### Add user to channel
+
+Request
+
+`POST /channel/user`
+
+| body param  | type         |
+|-------------|--------------|
+| channelId   | unsigned int |
+| userId      | uuid         |
+
+Response
+
+| status           | JSON              |
+|------------------|-------------------|
+| 204 No Content   | Null              |
+| 401 Unauthorized | Error             |
+
 #### Update unread notifications
 
 Request
