@@ -184,6 +184,16 @@ app.get("/users/:userId/channels", async (req, res, next) => {
   }
 });
 
+// endpoint for updating display_name
+app.put("/users", async (req, res, next) => {
+  try {
+    const { data, error, status } = await model.updateUserDisplayName(req.body.userId, req.body.displayName);
+    sendResponse(res, data, error, status);
+  } catch (err) {
+    next(err)
+  }
+})
+
 // endpoint for users in channel
 app.get("/channels/:channelId/users", async (req, res, next) => {
   try {
@@ -279,3 +289,11 @@ initializeBackend().then(() => {
 }).catch(err => {
   logger.error(`Backend startup failed: ${err}`);
 })
+
+const requestOptions = {
+  agent:agent,
+  method: 'PUT',
+  headers: {'Content-Type': 'application/json' },
+  body: JSON.stringify({ userId: "e6881fae-8b24-4751-a121-f4de0385010e", displayName: "renamed"}),
+}
+// await fetch (`https://localhost:${PORT}/USERS`, requestOptions)

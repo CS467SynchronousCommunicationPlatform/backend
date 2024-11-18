@@ -86,54 +86,53 @@ describe("REST API Tests", () => {
     });
   });
 
-    // test for notifications update
-    async function getUnread(channel) {
-      const { data, error, status } = await supabase
-      .from('channels_users')
-      .select('unread')
-      .eq('user_id', userId)
-      .eq('channel_id', channel)
-      
-      return data[0].unread;
-    };
+  // test for notifications update
+  async function getUnread(channel) {
+    const { data, error, status } = await supabase
+    .from('channels_users')
+    .select('unread')
+    .eq('user_id', userId)
+    .eq('channel_id', channel)
+    
+    return data[0].unread;
+  };
 
-    it("Increment unread notifications", async () => {
-      let body = JSON.stringify({ 
-        function: "incrementnotifications",
-        userId: userId,
-        channelId: channelId
-      });
-      await fetch(`${SERVER}/notifications`, defineReq("PUT", body)).then(resp => {
-        assert.equal(resp.status, 204);
-      });
-      assert.equal(await getUnread(channelId), 1);
-
-      // reset unread value
-      await supabase.from('channels_users').update({ unread: 0 }).eq('user_id', userId).eq('channel_id', channelId);
+  it("Increment unread notifications", async () => {
+    let body = JSON.stringify({ 
+      function: "incrementnotifications",
+      userId: userId,
+      channelId: channelId
     });
-
-
-    it("Clear unread notifications", async () => {
-      let body = JSON.stringify({
-        function: "clearnotifications",
-        userId: userId,
-        channelId: channelId2
-      });
-      await fetch(`${SERVER}/notifications`, defineReq("PUT", body)).then(resp => {
-        assert.equal(resp.status, 204);
-      });
-      assert.equal(await getUnread(channelId2), 0);
-      
-      // reset unread value
-      await supabase.from('channels_users').update({ unread: 1 }).eq('user_id', userId).eq('channel_id', channelId2);
+    await fetch(`${SERVER}/notifications`, defineReq("PUT", body)).then(resp => {
+      assert.equal(resp.status, 204);
     });
+    assert.equal(await getUnread(channelId), 1);
 
-    it("Invalid function", async () => {
-      let body = JSON.stringify({ function: "notafunction" });
-      await fetch(`${SERVER}/notifications`, defineReq("PUT", body)).then(resp => {
-        assert.equal(resp.status, 404);
-      });
+    // reset unread value
+    await supabase.from('channels_users').update({ unread: 0 }).eq('user_id', userId).eq('channel_id', channelId);
+  });
+
+
+  it("Clear unread notifications", async () => {
+    let body = JSON.stringify({
+      function: "clearnotifications",
+      userId: userId,
+      channelId: channelId2
     });
+    await fetch(`${SERVER}/notifications`, defineReq("PUT", body)).then(resp => {
+      assert.equal(resp.status, 204);
+    });
+    assert.equal(await getUnread(channelId2), 0);
+    
+    // reset unread value
+    await supabase.from('channels_users').update({ unread: 1 }).eq('user_id', userId).eq('channel_id', channelId2);
+  });
 
-
+  it("Invalid function", async () => {
+    let body = JSON.stringify({ function: "notafunction" });
+    await fetch(`${SERVER}/notifications`, defineReq("PUT", body)).then(resp => {
+      assert.equal(resp.status, 404);
+    });
+  });
+  
 });

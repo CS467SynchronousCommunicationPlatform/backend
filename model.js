@@ -25,6 +25,13 @@ export async function readAllUsersInChannel(channelId) {
     .eq('channels_users.channel_id', channelId);
 }
 
+export async function updateUserDisplayName(userId, displayName) {
+  return await supabase
+    .from('users')
+    .update( { display_name: displayName })
+    .eq('id', userId);
+}
+
 // channels functions
 export async function readAllChannelsUsers() {
   return await supabase
