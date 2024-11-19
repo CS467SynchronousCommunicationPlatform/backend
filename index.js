@@ -225,6 +225,10 @@ app.post("/channels/:channelId/users", async (req, res, next) => {
     // add user to channel for websocket traffic on success
     if (status === 201) {
       channelUsers.get(Number(req.params.channelId)).push(req.body.userId);
+      const socket = clients.get(req.body.userId);
+      if (socket !== undefined) {
+        socket.emit("channel", { message: "Added to channel", channelId: Number(req.params.channelId) });
+      }
     }
     sendResponse(res, data, error, status);
   } catch (err) {
