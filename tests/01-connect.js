@@ -31,7 +31,7 @@ describe("Connection Tests", () => {
   });
 
   it("No Auth Connection", (done) => {
-    const socket = io(SERVER, { transports: ["websocket"], rejectUnauthorized: !LOCAL })
+    const socket = io(SERVER, { transports: ["websocket"], rejectUnauthorized: false })
     socket.on("error", (err) => {
       assert.equal(err, "Auth token not provided");
       socket.disconnect();
@@ -40,7 +40,7 @@ describe("Connection Tests", () => {
   });
 
   it("Bad Auth Connection", (done) => {
-    const socket = io(SERVER, { auth: { token: "BAD_TOKEN" }, transports: ["websocket"], rejectUnauthorized: !LOCAL })
+    const socket = io(SERVER, { auth: { token: "BAD_TOKEN" }, transports: ["websocket"], rejectUnauthorized: false })
     socket.on("error", (err) => {
       assert.equal(err, "Auth token does not match a user");
       socket.disconnect();
@@ -49,7 +49,7 @@ describe("Connection Tests", () => {
   });
 
   it("Good Auth Connection", (done) => {
-    const socket = io(SERVER, { auth: { token: process.env.TEST_USER1 }, transports: ["websocket"], rejectUnauthorized: !LOCAL })
+    const socket = io(SERVER, { auth: { token: process.env.TEST_USER1 }, transports: ["websocket"], rejectUnauthorized: false })
     socket.on("connected", (msg) => {
       assert.equal(msg.status, "connected");
       socket.disconnect();

@@ -28,7 +28,7 @@ export async function readAllUsersInChannel(channelId) {
 export async function updateUserDisplayName(userId, displayName) {
   return await supabase
     .from('users')
-    .update( { display_name: displayName })
+    .update({ display_name: displayName })
     .eq('id', userId);
 }
 
@@ -50,17 +50,18 @@ export async function addChannels(name, description) {
   return await supabase
     .from('channels')
     .insert({ name: name, description: description })
+    .select("*");
 }
 
 export async function addChannelsUsers(channelId, userId) {
   return await supabase
     .from('channels_users')
-    .insert({ channel_id: channelId, user_id: userId})
+    .insert({ channel_id: channelId, user_id: userId })
 }
 
 export async function updateUnreadMessage(func, userId, channelId) {
   return await supabase
-    .rpc(func, {userid: userId, channelid: channelId});
+    .rpc(func, { userid: userId, channelid: channelId });
 }
 
 // messages functions

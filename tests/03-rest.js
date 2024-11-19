@@ -11,7 +11,7 @@ dotenv.config({ path: LOCAL ? ".env.test" : ".env" });
 const SERVER = LOCAL ? "https://localhost" : process.env.DEPLOYED_URL;
 
 describe("REST API Tests", () => {
-  const agent = LOCAL ? new Agent({ rejectUnauthorized: false }) : undefined;
+  const agent = new Agent({ rejectUnauthorized: false });
   let backend, supabase, GENERAL
 
   before(async () => {
@@ -71,7 +71,7 @@ describe("REST API Tests", () => {
   }
 
   it("Insert channel", async () => {
-    let body = JSON.stringify({ name: "General Chat", description: "Channel insert test" });
+    let body = JSON.stringify({ name: "Channel insert test", description: "Channel insert test" });
     await fetch(`${SERVER}/channels`, defineReq("POST", body)).then(resp => {
       assert.equal(resp.status, 201);
     });

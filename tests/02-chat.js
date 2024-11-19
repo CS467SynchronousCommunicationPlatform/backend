@@ -36,8 +36,8 @@ describe("Chat Tests", () => {
       .then(result => result.data[0].id);
 
     // connect sockets
-    socket1 = io(SERVER, { auth: { token: process.env.TEST_USER1 }, transports: ["websocket"], rejectUnauthorized: !LOCAL });
-    socket2 = io(SERVER, { auth: { token: process.env.TEST_USER2 }, transports: ["websocket"], rejectUnauthorized: !LOCAL });
+    socket1 = io(SERVER, { auth: { token: process.env.TEST_USER1 }, transports: ["websocket"], rejectUnauthorized: false });
+    socket2 = io(SERVER, { auth: { token: process.env.TEST_USER2 }, transports: ["websocket"], rejectUnauthorized: false });
   });
 
   after((done) => {

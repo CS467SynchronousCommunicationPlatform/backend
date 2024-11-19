@@ -208,6 +208,10 @@ app.get("/channels/:channelId/users", async (req, res, next) => {
 app.post("/channels", async (req, res, next) => {
   try {
     const { data, error, status } = await model.addChannels(req.body.name, req.body.description);
+    // add channel for websocket traffic on success
+    if (data !== null) {
+      channelUsers.set(data[0].id, []);
+    }
     sendResponse(res, data, error, status);
   } catch (err) {
     next(err)
@@ -218,6 +222,10 @@ app.post("/channels", async (req, res, next) => {
 app.post("/channels/:channelId/users", async (req, res, next) => {
   try {
     const { data, error, status } = await model.addChannelsUsers(req.params.channelId, req.body.userId);
+    // add user to channel for websocket traffic on success
+    if (status === 201) {
+      channelUsers.get(Number(req.params.channelId)).push(req.body.userId);
+    }
     sendResponse(res, data, error, status);
   } catch (err) {
     next(err)
