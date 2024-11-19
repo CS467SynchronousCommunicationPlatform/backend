@@ -48,6 +48,26 @@ Otherwise, the backend will emit one of the following "error" events depending o
 - "Chat message "channel_id" is `<invalid channel_id>` which is not a valid channel"
 - "Chat message user is not a member of the chat with "channel_id" value `<channel_id value>`"
 
+#### Update Events
+
+Whenever a user adds another user to a channel, a "channel" event with the following structure will be sent to that user
+```
+{
+    message: "Added to channel",
+    channelId: unsigned integer
+}
+```
+
+Whenever a user updates their display name, a "displayname" event with the following structure will be sent to all users to inform them what the displayname used to be and what it is now
+```
+{
+    "message": "User display name was updated"
+    "previous": string,
+    "new": string
+}
+```
+
+
 ### REST API
 
 #### Structures
@@ -58,7 +78,8 @@ Channel
     "id": unsigned integer,
     "name": string,
     "created_at": timestamp string,
-    "description": string
+    "description": string,
+    "private": boolean
 }
 ```
 
@@ -149,35 +170,36 @@ Request
 
 `POST /channel`
 
-| body param  | type   |
-|-------------|--------|
-| name        | string |
-| description | string |
+| body param  | type    |
+|-------------|---------|
+| name        | string  |
+| description | string  |
+| private     | boolean |
 
 Response
 
 | status           | JSON              |
 |------------------|-------------------|
-| 204 No Content   | Null              |
-| 401 Unauthorized | Error             |
+| 201 Created      | Null              |
+| 400 Bad Request  | Error             |
 
 #### Add user to channel
 
 Request
 
-`POST /channel/user`
+`POST /channel/<channelId>/users`
 
 | body param  | type         |
 |-------------|--------------|
-| channelId   | unsigned int |
 | userId      | uuid         |
 
 Response
 
 | status           | JSON              |
 |------------------|-------------------|
-| 204 No Content   | Null              |
-| 401 Unauthorized | Error             |
+| 201 Created      | Null              |
+| 400 Bad Request  | Error             |
+| 409 Conflict     | Error             |
 
 #### Update unread notifications
 
@@ -197,6 +219,23 @@ Response
 |-----------------|-------------------|
 | 204 No Content  | Null              |
 | 404 Not Found   | Error             |
+
+#### Update user display name
+
+Request
+
+`PUT /users/<userId>`
+
+| body param  | type   |
+|-------------|--------|
+| displayName | string |
+
+Response
+
+| status          | JSON  |
+|-----------------|-------|
+| 200 OK          | User  |
+| 400 Bad Request | Error |
 
 ## Developer Reference
 
