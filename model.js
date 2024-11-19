@@ -29,7 +29,8 @@ export async function updateUserDisplayName(userId, displayName) {
   return await supabase
     .from('users')
     .update({ display_name: displayName })
-    .eq('id', userId);
+    .eq('id', userId)
+    .select('*');
 }
 
 // channels functions

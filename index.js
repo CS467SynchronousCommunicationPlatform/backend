@@ -188,6 +188,17 @@ app.get("/users/:userId/channels", async (req, res, next) => {
 app.put("/users/:userId", async (req, res, next) => {
   try {
     const { data, error, status } = await model.updateUserDisplayName(req.params.userId, req.body.displayName);
+    if (data !== null && data.length > 0) {
+      // send new username to all users and update displayname map
+      for (const socket of clients.values()) {
+        socket.emit("displayname", {
+          "previous": displayNames.get(req.body.userId),
+          "new": req.body.displayName,
+          "message": "User display name was updated"
+        });
+      }
+      displayNames.set(req.body.userId, req.body.displayName);
+    }
     sendResponse(res, data, error, status);
   } catch (err) {
     next(err)
