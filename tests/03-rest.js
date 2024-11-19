@@ -55,7 +55,7 @@ describe("REST API Tests", () => {
       assert.equal(resp.status, 400);
       return resp.json();
     }).then(json => {
-      assert.deepEqual(json, { "Error": "Invalid method or endpoint: GET https://localhost/bad" });
+      assert.deepEqual(json, { "Error": `Invalid method or endpoint: GET ${SERVER}/bad` });
     });
   });
 
