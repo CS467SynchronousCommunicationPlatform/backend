@@ -71,7 +71,7 @@ describe("REST API Tests", () => {
   }
 
   it("Insert channel", async () => {
-    let body = JSON.stringify({ name: "Channel insert test", description: "Channel insert test" });
+    let body = JSON.stringify({ name: "Channel insert test", description: "Channel insert test", private: false });
     await fetch(`${SERVER}/channels`, defineReq("POST", body)).then(resp => {
       assert.equal(resp.status, 201);
     });
@@ -90,14 +90,21 @@ describe("REST API Tests", () => {
   });
 
   it("Insert channel missing name", async () => {
-    let body = JSON.stringify({ description: "Channel insert test" })
+    let body = JSON.stringify({ description: "Channel insert test", private: false })
     await fetch(`${SERVER}/channels`, defineReq("POST", body)).then(resp => {
       assert.equal(resp.status, 400);
     });
   });
 
   it("Insert channel missing description", async () => {
-    let body = JSON.stringify({ name: "Channel insert test" })
+    let body = JSON.stringify({ name: "Channel insert test", private: false })
+    await fetch(`${SERVER}/channels`, defineReq("POST", body)).then(resp => {
+      assert.equal(resp.status, 400);
+    });
+  });
+
+  it("Insert channel missing private", async () => {
+    let body = JSON.stringify({ name: "Channel insert test", description: "Channel insert test" })
     await fetch(`${SERVER}/channels`, defineReq("POST", body)).then(resp => {
       assert.equal(resp.status, 400);
     });
