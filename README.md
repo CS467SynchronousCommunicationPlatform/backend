@@ -212,11 +212,9 @@ Response
 2. Create a Google Compute Engine VM using the above tagged image
 
 ### Testing Locally
-1. In the .env, define `TEST_USER1` and `TEST_USER2` using two `id` values from the `users` table in supabase
-2. In one terminal run the backend with `npm start`
-3. In another terminal run `npm run test`
+1. Create a .env.test file with test database `SUPABASE_URL` and `SUPABASE_KEY` values and define `TEST_USER1` and `TEST_USER2` using two `id` values from the `users` table
+2. In your terminal run the tests with `npm run test`
 
 ### Testing Deployment
-1. In addition to step 1 in "Testing Local Backend", define `DEPLOYED_URL` in the .env file as the address of the deployed backend
-2. In one terminal run the backend with `npm start`
-3. In another terminal run `npm run test`
+1. Update the .env file with `TEST_USER1` and `TEST_USER2` values using two `id` values from the `users` table and define `DEPLOYED_URL` as the address of the deployed backend
+2. In a terminal run `npm run test-deployed`

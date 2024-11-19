@@ -1,26 +1,44 @@
+import { spawn } from "node:child_process";
 import dotenv from "dotenv";
 import { assert } from "chai";
 import fetch from "node-fetch";
 import { Agent } from "node:https";
 import { createClient } from "@supabase/supabase-js";
-dotenv.config();
 
-const LOCAL = process.env.DEPLOYED === undefined
+const LOCAL = process.env.DEPLOYED === undefined;
+dotenv.config({ path: LOCAL ? ".env.test" : ".env" });
+
 const SERVER = LOCAL ? "https://localhost" : process.env.DEPLOYED_URL;
 
 describe("REST API Tests", () => {
   const agent = LOCAL ? new Agent({ rejectUnauthorized: false }) : undefined;
-
-  let supabase, userId, channelId, channelId2
+  let backend, supabase, GENERAL
 
   before(async () => {
+    if (LOCAL) {
+      backend = spawn("node", ["index.js"], { env: { ...process.env } });
+      await new Promise((resolve, reject) => {
+        backend.stdout.on("data", (data) => {
+          if (data.toString().includes("Server running at")) {
+            resolve();
+          }
+        });
+      });
+    }
+
     // connect to db
     supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
     // define constants
-    userId = process.env.TEST_USER3;
-    channelId = process.env.TEST_CHANNELID;
-    channelId2 = process.env.TEST_CHANNELID2;
+    GENERAL = await supabase.from("channels")
+      .select("id").eq("name", "General Chat")
+      .then(result => result.data[0].id);
+  });
+
+  after((done) => {
+    if (LOCAL)
+      backend.kill();
+    done();
   });
 
   it("/ server status", async () => {
@@ -39,7 +57,6 @@ describe("REST API Tests", () => {
     }).then(json => {
       assert.deepEqual(json, { "Error": "Invalid method or endpoint: GET https://localhost/bad" });
     });
-    
   });
 
   // test for insert channel endpoint
@@ -55,7 +72,7 @@ describe("REST API Tests", () => {
 
   it("Insert channel", async () => {
     let body = JSON.stringify({ name: "General Chat", description: "Channel insert test" });
-    await fetch(`${SERVER}/channels`, defineReq("POST", body)).then(resp => { 
+    await fetch(`${SERVER}/channels`, defineReq("POST", body)).then(resp => {
       assert.equal(resp.status, 201);
     });
 
@@ -87,45 +104,50 @@ describe("REST API Tests", () => {
   });
 
   // test for notifications update
-  async function getUnread(channel) {
+  async function getUnread(userId, channelId) {
     const { data, error, status } = await supabase
-    .from('channels_users')
-    .select('unread')
-    .eq('user_id', userId)
-    .eq('channel_id', channel)
-    
+      .from('channels_users')
+      .select('unread')
+      .eq('user_id', userId)
+      .eq('channel_id', channelId)
     return data[0].unread;
   };
 
   it("Increment unread notifications", async () => {
-    let body = JSON.stringify({ 
+    // ensure value is starting at zero
+    await supabase.from('channels_users').update({ unread: 0 }).eq('user_id', process.env.TEST_USER1).eq('channel_id', GENERAL);
+
+    let body = JSON.stringify({
       function: "incrementnotifications",
-      userId: userId,
-      channelId: channelId
+      userId: process.env.TEST_USER1,
+      channelId: GENERAL
     });
     await fetch(`${SERVER}/notifications`, defineReq("PUT", body)).then(resp => {
       assert.equal(resp.status, 204);
     });
-    assert.equal(await getUnread(channelId), 1);
+    assert.equal(await getUnread(process.env.TEST_USER1, GENERAL), 1);
 
     // reset unread value
-    await supabase.from('channels_users').update({ unread: 0 }).eq('user_id', userId).eq('channel_id', channelId);
+    await supabase.from('channels_users').update({ unread: 0 }).eq('user_id', process.env.TEST_USER1).eq('channel_id', GENERAL);
   });
 
 
   it("Clear unread notifications", async () => {
+    // ensure value starts not zero
+    await supabase.from('channels_users').update({ unread: 1 }).eq('user_id', process.env.TEST_USER1).eq('channel_id', GENERAL);
+
     let body = JSON.stringify({
       function: "clearnotifications",
-      userId: userId,
-      channelId: channelId2
+      userId: process.env.TEST_USER1,
+      channelId: GENERAL
     });
     await fetch(`${SERVER}/notifications`, defineReq("PUT", body)).then(resp => {
       assert.equal(resp.status, 204);
     });
-    assert.equal(await getUnread(channelId2), 0);
-    
+    assert.equal(await getUnread(process.env.TEST_USER1, GENERAL), 0);
+
     // reset unread value
-    await supabase.from('channels_users').update({ unread: 1 }).eq('user_id', userId).eq('channel_id', channelId2);
+    await supabase.from('channels_users').update({ unread: 1 }).eq('user_id', process.env.TEST_USER1).eq('channel_id', GENERAL);
   });
 
   it("Invalid function", async () => {
@@ -134,5 +156,4 @@ describe("REST API Tests", () => {
       assert.equal(resp.status, 404);
     });
   });
-  
 });

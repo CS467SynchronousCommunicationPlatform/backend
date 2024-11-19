@@ -185,9 +185,9 @@ app.get("/users/:userId/channels", async (req, res, next) => {
 });
 
 // endpoint for updating display_name
-app.put("/users", async (req, res, next) => {
+app.put("/users/:userId", async (req, res, next) => {
   try {
-    const { data, error, status } = await model.updateUserDisplayName(req.body.userId, req.body.displayName);
+    const { data, error, status } = await model.updateUserDisplayName(req.params.userId, req.body.displayName);
     sendResponse(res, data, error, status);
   } catch (err) {
     next(err)
@@ -215,9 +215,9 @@ app.post("/channels", async (req, res, next) => {
 });
 
 // endpoint for adding users to channels
-app.post("/channels/:channelId/user", async (req, res, next) => {
+app.post("/channels/:channelId/users", async (req, res, next) => {
   try {
-    const { data, error, status } = await model.addChannelsUsers(req.body.channelId, req.body.userId);
+    const { data, error, status } = await model.addChannelsUsers(req.params.channelId, req.body.userId);
     sendResponse(res, data, error, status);
   } catch (err) {
     next(err)

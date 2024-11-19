@@ -1,12 +1,35 @@
+import { spawn } from "node:child_process";
 import dotenv from "dotenv";
 import { io } from "socket.io-client";
 import { assert } from "chai";
-dotenv.config();
 
-const LOCAL = process.env.DEPLOYED === undefined
+const LOCAL = process.env.DEPLOYED === undefined;
+dotenv.config({ path: LOCAL ? ".env.test" : ".env" });
+
 const SERVER = LOCAL ? "https://localhost" : process.env.DEPLOYED_URL;
 
 describe("Connection Tests", () => {
+  let backend;
+
+  before(async () => {
+    if (LOCAL) {
+      backend = spawn("node", ["index.js"], { env: { ...process.env } });
+      await new Promise((resolve, reject) => {
+        backend.stdout.on("data", (data) => {
+          if (data.toString().includes("Server running at")) {
+            resolve();
+          }
+        });
+      });
+    }
+  });
+
+  after((done) => {
+    if (LOCAL)
+      backend.kill();
+    done();
+  });
+
   it("No Auth Connection", (done) => {
     const socket = io(SERVER, { transports: ["websocket"], rejectUnauthorized: !LOCAL })
     socket.on("error", (err) => {
