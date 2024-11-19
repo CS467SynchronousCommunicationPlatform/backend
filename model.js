@@ -46,10 +46,10 @@ export async function readAllChannelsForUser(userId) {
     .eq('channels_users.user_id', userId);
 }
 
-export async function addChannels(name, description) {
+export async function addChannels(name, description, isPrivate) {
   return await supabase
     .from('channels')
-    .insert({ name: name, description: description })
+    .insert({ name: name, description: description, private: isPrivate })
     .select("*");
 }
 

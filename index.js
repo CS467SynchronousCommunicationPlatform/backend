@@ -207,7 +207,7 @@ app.get("/channels/:channelId/users", async (req, res, next) => {
 // endpoint for creating channels
 app.post("/channels", async (req, res, next) => {
   try {
-    const { data, error, status } = await model.addChannels(req.body.name, req.body.description);
+    const { data, error, status } = await model.addChannels(req.body.name, req.body.description, req.body.private);
     // add channel for websocket traffic on success
     if (data !== null) {
       channelUsers.set(data[0].id, []);
