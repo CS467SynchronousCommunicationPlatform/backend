@@ -18,9 +18,9 @@ describe("REST API Tests", () => {
     supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
     // define constants
-    userId = "0b139386-a0e1-4f4c-81ba-5e0241b8cd19";
-    channelId = 37;
-    channelId2 = 36;
+    userId = process.env.TEST_USER3;
+    channelId = process.env.TEST_CHANNELID;
+    channelId2 = process.env.TEST_CHANNELID2;
   });
 
   it("/ server status", async () => {
