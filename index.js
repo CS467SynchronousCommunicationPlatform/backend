@@ -214,6 +214,27 @@ app.get("/users/:userId/channels", async (req, res, next) => {
   }
 });
 
+// endpoint for updating display_name
+app.put("/users/:userId", async (req, res, next) => {
+  try {
+    const { data, error, status } = await model.updateUserDisplayName(req.params.userId, req.body.displayName);
+    if (data !== null && data.length > 0) {
+      // send new username to all users and update displayname map
+      for (const socket of clients.values()) {
+        socket.emit("displayname", {
+          "previous": displayNames.get(req.body.userId),
+          "new": req.body.displayName,
+          "message": "User display name was updated"
+        });
+      }
+      displayNames.set(req.body.userId, req.body.displayName);
+    }
+    sendResponse(res, data, error, status);
+  } catch (err) {
+    next(err)
+  }
+})
+
 // endpoint for users in channel
 app.get("/channels/:channelId/users", async (req, res, next) => {
   try {
@@ -224,10 +245,52 @@ app.get("/channels/:channelId/users", async (req, res, next) => {
   }
 });
 
+// endpoint for creating channels
+app.post("/channels", async (req, res, next) => {
+  try {
+    const { data, error, status } = await model.addChannels(req.body.name, req.body.description, req.body.private);
+    // add channel for websocket traffic on success
+    if (data !== null) {
+      channelUsers.set(data[0].id, []);
+    }
+    sendResponse(res, data, error, status);
+  } catch (err) {
+    next(err)
+  }
+});
+
+// endpoint for adding users to channels
+app.post("/channels/:channelId/users", async (req, res, next) => {
+  try {
+    const { data, error, status } = await model.addChannelsUsers(req.params.channelId, req.body.userId);
+    // add user to channel for websocket traffic on success
+    if (status === 201) {
+      channelUsers.get(Number(req.params.channelId)).push(req.body.userId);
+      const socket = clients.get(req.body.userId);
+      if (socket !== undefined) {
+        socket.emit("channel", { message: "Added to channel", channelId: Number(req.params.channelId) });
+      }
+    }
+    sendResponse(res, data, error, status);
+  } catch (err) {
+    next(err)
+  }
+})
+
 // endpoint for messages in channel
 app.get("/channels/:channelId/messages", async (req, res, next) => {
   try {
     const { data, error, status } = await model.readAllMessagesInChannel(req.params.channelId);
+    sendResponse(res, data, error, status);
+  } catch (err) {
+    next(err)
+  }
+});
+
+// endpoint for updating unread notifications
+app.put("/notifications", async (req, res, next) => {
+  try {
+    const { data, error, status } = await model.updateUnreadMessage(req.body.function, req.body.userId, req.body.channelId);
     sendResponse(res, data, error, status);
   } catch (err) {
     next(err)
@@ -271,7 +334,6 @@ async function initializeBackend() {
     }
   }
 }
-
 
 // initialize and then start server
 initializeBackend().then(() => {

@@ -48,6 +48,26 @@ Otherwise, the backend will emit one of the following "error" events depending o
 - "Chat message "channel_id" is `<invalid channel_id>` which is not a valid channel"
 - "Chat message user is not a member of the chat with "channel_id" value `<channel_id value>`"
 
+#### Update Events
+
+Whenever a user adds another user to a channel, a "channel" event with the following structure will be sent to that user
+```
+{
+    message: "Added to channel",
+    channelId: unsigned integer
+}
+```
+
+Whenever a user updates their display name, a "displayname" event with the following structure will be sent to all users to inform them what the displayname used to be and what it is now
+```
+{
+    "message": "User display name was updated"
+    "previous": string,
+    "new": string
+}
+```
+
+
 ### REST API
 
 #### Structures
@@ -58,7 +78,8 @@ Channel
     "id": unsigned integer,
     "name": string,
     "created_at": timestamp string,
-    "description": string
+    "description": string,
+    "private": boolean
 }
 ```
 
@@ -143,6 +164,79 @@ Response
 | 200 OK          | array of Messages |
 | 400 Bad Request | Error             |
 
+#### Create new channel
+
+Request
+
+`POST /channel`
+
+| body param  | type    |
+|-------------|---------|
+| name        | string  |
+| description | string  |
+| private     | boolean |
+
+Response
+
+| status           | JSON              |
+|------------------|-------------------|
+| 201 Created      | Null              |
+| 400 Bad Request  | Error             |
+
+#### Add user to channel
+
+Request
+
+`POST /channel/<channelId>/users`
+
+| body param  | type         |
+|-------------|--------------|
+| userId      | uuid         |
+
+Response
+
+| status           | JSON              |
+|------------------|-------------------|
+| 201 Created      | Null              |
+| 400 Bad Request  | Error             |
+| 409 Conflict     | Error             |
+
+#### Update unread notifications
+
+Request
+
+`PUT /notifications`
+
+| body param  | type                                                      |
+|-------------|-----------------------------------------------------------|
+| func        | string ("incrementnotifications" or "clearnotifications") |
+| userId      | uuid                                                      |
+| channelId   | unsigned integer                                          |
+
+Response
+
+| status          | JSON              |
+|-----------------|-------------------|
+| 204 No Content  | Null              |
+| 404 Not Found   | Error             |
+
+#### Update user display name
+
+Request
+
+`PUT /users/<userId>`
+
+| body param  | type   |
+|-------------|--------|
+| displayName | string |
+
+Response
+
+| status          | JSON  |
+|-----------------|-------|
+| 200 OK          | User  |
+| 400 Bad Request | Error |
+
 ## Developer Reference
 
 ### Running
@@ -157,11 +251,9 @@ Response
 2. Create a Google Compute Engine VM using the above tagged image
 
 ### Testing Locally
-1. In the .env, define `TEST_USER1` and `TEST_USER2` using two `id` values from the `users` table in supabase
-2. In one terminal run the backend with `npm start`
-3. In another terminal run `npm run test`
+1. Create a .env.test file with test database `SUPABASE_URL` and `SUPABASE_KEY` values and define `TEST_USER1` and `TEST_USER2` using two `id` values from the `users` table
+2. In your terminal run the tests with `npm run test`
 
 ### Testing Deployment
-1. In addition to step 1 in "Testing Local Backend", define `DEPLOYED_URL` in the .env file as the address of the deployed backend
-2. In one terminal run the backend with `npm start`
-3. In another terminal run `npm run test`
+1. Update the .env file with `TEST_USER1` and `TEST_USER2` values using two `id` values from the `users` table and define `DEPLOYED_URL` as the address of the deployed backend
+2. In a terminal run `npm run test-deployed`

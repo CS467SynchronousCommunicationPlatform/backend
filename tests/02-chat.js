@@ -1,20 +1,30 @@
+import { spawn } from "node:child_process";
 import dotenv from "dotenv";
 import { io } from "socket.io-client";
 import { createClient } from "@supabase/supabase-js";
 import { assert } from "chai";
-dotenv.config();
 
-const LOCAL = process.env.DEPLOYED === undefined
+const LOCAL = process.env.DEPLOYED === undefined;
+dotenv.config({ path: LOCAL ? ".env.test" : ".env" });
+
 const SERVER = LOCAL ? "https://localhost" : process.env.DEPLOYED_URL;
 const TIMESTAMP = "2024-11-01T06:25:51.182Z"
 
+
 describe("Chat Tests", () => {
-  let socket1, socket2, supabase, GENERAL, TEST_PRIVATE_CHANNEL;
+  let backend, socket1, socket2, supabase, GENERAL, TEST_PRIVATE_CHANNEL;
 
   before(async () => {
-    // connect sockets
-    socket1 = io(SERVER, { auth: { token: process.env.TEST_USER1 }, transports: ["websocket"], rejectUnauthorized: !LOCAL });
-    socket2 = io(SERVER, { auth: { token: process.env.TEST_USER2 }, transports: ["websocket"], rejectUnauthorized: !LOCAL });
+    if (LOCAL) {
+      backend = spawn("node", ["index.js"], { env: { ...process.env } });
+      await new Promise((resolve, reject) => {
+        backend.stdout.on("data", (data) => {
+          if (data.toString().includes("Server running at")) {
+            resolve();
+          }
+        });
+      });
+    }
 
     // connect to db and get channel values from database
     supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
@@ -24,11 +34,18 @@ describe("Chat Tests", () => {
     TEST_PRIVATE_CHANNEL = await supabase.from("channels") //TODO replace with insert when insert is enabled
       .select("id").eq("name", "test_channel_2")
       .then(result => result.data[0].id);
+
+    // connect sockets
+    socket1 = io(SERVER, { auth: { token: process.env.TEST_USER1 }, transports: ["websocket"], rejectUnauthorized: false });
+    socket2 = io(SERVER, { auth: { token: process.env.TEST_USER2 }, transports: ["websocket"], rejectUnauthorized: false });
   });
 
-  after(() => {
+  after((done) => {
     socket1.disconnect();
     socket2.disconnect();
+    if (LOCAL)
+      backend.kill();
+    done();
   });
 
   afterEach(() => {

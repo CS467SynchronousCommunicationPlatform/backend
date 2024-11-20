@@ -25,6 +25,14 @@ export async function readAllUsersInChannel(channelId) {
     .eq('channels_users.channel_id', channelId);
 }
 
+export async function updateUserDisplayName(userId, displayName) {
+  return await supabase
+    .from('users')
+    .update({ display_name: displayName })
+    .eq('id', userId)
+    .select('*');
+}
+
 // channels functions
 export async function readAllChannelsUsers() {
   return await supabase
@@ -39,6 +47,23 @@ export async function readAllChannelsForUser(userId) {
     .eq('channels_users.user_id', userId);
 }
 
+export async function addChannels(name, description, isPrivate) {
+  return await supabase
+    .from('channels')
+    .insert({ name: name, description: description, private: isPrivate })
+    .select("*");
+}
+
+export async function addChannelsUsers(channelId, userId) {
+  return await supabase
+    .from('channels_users')
+    .insert({ channel_id: channelId, user_id: userId })
+}
+
+export async function updateUnreadMessage(func, userId, channelId) {
+  return await supabase
+    .rpc(func, { userid: userId, channelid: channelId });
+}
 
 // messages functions
 export async function readAllMessagesInChannel(channelId) {
