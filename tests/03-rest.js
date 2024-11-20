@@ -51,7 +51,8 @@ describe("REST API Tests", () => {
   });
 
   it("Invalid endpoint error", async () => {
-    await fetch(`${SERVER}/bad`, { agent: agent }).then(resp => {
+    const url = `${SERVER}/bad`
+    await fetch(url, { agent: agent }).then(resp => {
       assert.equal(resp.status, 400);
       return resp.json();
     }).then(json => {
