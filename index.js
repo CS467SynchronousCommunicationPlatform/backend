@@ -35,6 +35,7 @@ const io = new Server(server, { transports: ["websocket"] });
 let clients = new Map(); // user id -> socket
 let displayNames = new Map(); // user id -> display name
 let channelUsers = new Map(); // channel id -> array of user ids
+let userStatus = new Map(); // user id -> status
 
 // helper function to report error on socket and in console log
 function socketError(socket, message) {
@@ -81,6 +82,17 @@ function isValidChatMessage(socket, message) {
   }
 
   return true;
+}
+
+// helper to update map of user statuses and emit statu to all users
+function statusUpdate(userId, status) {
+  userStatus.set(userId, status);
+  for (const socket of clients.values()) {
+    socket.emit("status", {
+      "user": displayNames.get(userId),
+      "status": status
+    });
+  }
 }
 
 // Register a new user that has connected
@@ -138,9 +150,10 @@ async function registerConnection(socket) {
   clients.set(userId, socket);
   logger.socket(`${userId} client connected`);
 
-  // register disconnect listener to remove socket from client connections
+  // register disconnect listener to remove socket from client connections and update status to offline
   socket.on("disconnect", () => {
     clients.delete(userId);
+    statusUpdate(userId, "Offline");
     logger.socket(`${userId} client disconnected`);
   });
 
@@ -177,6 +190,18 @@ function registerChatListener(socket) {
   });
 }
 
+// Registers status listener for a client socket
+function registerStatusListener(socket) {
+  socket.on("status", async (message) => {
+    // ignore invalid statuses
+    if (message.status !== "Online" && message.status !== "Away")
+      return;
+
+    // send status message to every online user
+    statusUpdate(socket.handshake.auth.token, message.status);
+  });
+}
+
 // register connection and listeners
 io.on("connection", async (socket) => {
   if (!(await registerConnection(socket))) {
@@ -184,7 +209,17 @@ io.on("connection", async (socket) => {
   }
 
   registerChatListener(socket);
-  socket.emit("connected", { status: "connected" });
+  registerStatusListener(socket);
+
+  // update user status to online
+  statusUpdate(socket.handshake.auth.token, "Online");
+
+  // send connected status along with status info for all users
+  let statuses = [];
+  for (const [userId, status] of userStatus.entries()) {
+    statuses.push({ user: displayNames.get(userId), status: status });
+  }
+  socket.emit("connected", { status: "connected", userStatus: statuses });
   logger.socket(`Socket initialization completed for ${socket.handshake.auth.token}`)
 });
 
