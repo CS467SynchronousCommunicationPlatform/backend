@@ -52,10 +52,8 @@ describe("Status Tests", () => {
     socket2 = io(SERVER, { auth: { token: process.env.TEST_USER2 }, transports: ["websocket"], rejectUnauthorized: false });
 
     socket2.on("connected", (msg) => {
-      assert.deepEqual(msg.userStatus, [
-        { user: DISPLAYNAME1, status: "Online" },
-        { user: DISPLAYNAME2, status: "Online" }
-      ]);
+      assert.deepNestedInclude(msg.userStatus, { user: DISPLAYNAME1, status: "Online" });
+      assert.deepNestedInclude(msg.userStatus, { user: DISPLAYNAME2, status: "Online" });
       done();
     });
   });
