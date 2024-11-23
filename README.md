@@ -14,7 +14,7 @@ import { io } from "socket.io-client";
 const socket = io(serverUrl, { auth: { token: userId }, transports: ["websocket"]});
 ```
 
-On success, the backend will emit a "connected" event.
+On success, the backend will emit a "connected" event. This event contains a userStatus field with all of the statuses of other users (see "User status" below).
 
 On failure, the backend will emit one of the following "error" events depending on the issue
 - "Auth token not provided"
@@ -67,6 +67,24 @@ Whenever a user updates their display name, a "displayname" event with the follo
 }
 ```
 
+#### User status
+
+Whenever a client connects or disconnects, their status will be set to "Online" or "Offline" respectively. This update will cause a "status" event to be emitted to all connected users with the following structure where "user" is a display name
+```
+{
+    "user": string
+    "status" string
+}
+```
+
+When a user first connected, they receive the "connected" event. As part of the structure of this event message, there is an array of user status using the same structure as above.
+
+A user can update their status to either "Online" or "Away" by emitting the following structure on the "status" event
+```
+{
+    "status" string
+}
+```
 
 ### REST API
 
