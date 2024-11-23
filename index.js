@@ -222,7 +222,7 @@ app.put("/users/:userId", async (req, res, next) => {
       // send new username to all users and update displayname map
       for (const socket of clients.values()) {
         socket.emit("displayname", {
-          "previous": displayNames.get(req.body.userId),
+          "previous": displayNames.get(req.params.userId),
           "new": req.body.displayName,
           "message": "User display name was updated"
         });
