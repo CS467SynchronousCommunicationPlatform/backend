@@ -204,6 +204,16 @@ function sendResponse(res, data, error, status) {
   }
 }
 
+// endpoint for all users
+app.get("/users", async (req, res, next) => {
+  try {
+    const { data, error, status } = await model.readAllUsers();
+    sendResponse(res, data, error, status);
+  } catch (err) {
+    next(err)
+  }
+});
+
 // endpoint for channels user is in
 app.get("/users/:userId/channels", async (req, res, next) => {
   try {
