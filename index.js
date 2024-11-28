@@ -265,10 +265,14 @@ app.post("/channels/:channelId/users", async (req, res, next) => {
     let data, error, status
     if (req.body.remove) {
       ({ data, error, status } = await model.removeChannelsUsers(req.params.channelId, req.body.userId));
-      // if (status === 204) {
-      //   let index = channelUsers.get(Number(req.params.channelId)).indexOf(req.body.userId);
-      //   channelUsers.get(Number(req.params.channelId)).splice(index, 1);
-      // }
+      if (status === 204) {
+        let index = channelUsers.get(Number(req.params.channelId)).indexOf(req.body.userId);
+        channelUsers.get(Number(req.params.channelId)).splice(index, 1);
+        const socket = clients.get(req.body.userId);
+        if (socket !== undefined) {
+          socket.emit("channel", { message: "Removed from channel", channelId: Number(req.params.channelId) });
+        }
+      }
     } else {
       ({ data, error, status } = await model.addChannelsUsers(req.params.channelId, req.body.userId));
       // add user to channel for websocket traffic on success
