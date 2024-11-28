@@ -60,6 +60,14 @@ export async function addChannelsUsers(channelId, userId) {
     .insert({ channel_id: channelId, user_id: userId })
 }
 
+export async function removeChannelsUsers(channelId, userId) {
+  return await supabase
+    .from('channels_users')
+    .delete()
+    .eq('channel_id', channelId)
+    .eq('user_id', userId)
+}
+
 export async function updateUnreadMessage(func, userId, channelId) {
   return await supabase
     .rpc(func, { userid: userId, channelid: channelId });
