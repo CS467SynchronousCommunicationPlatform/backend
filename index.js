@@ -190,7 +190,11 @@ function registerChatListener(socket) {
 
     // send chat message to every online user in that channel and increment their notifications
     for (const userId of channelUsers.get(message.channel_id)) {
-      model.updateUnreadMessage("incrementnotifications", userId, message.channel_id);
+      const { data } = await model.updateUnreadMessage("incrementnotifications", userId, message.channel_id);
+      const socket = clients.get(userId);
+      if (data !== undefined && socket !== undefined) {
+        socket.emit("notifications", { channel_id: data.channel_id, unread: data.unread })
+      }
     }
   });
 }

@@ -121,6 +121,16 @@ Message
 }
 ```
 
+Channel_User
+```json
+{
+    "id": unsigned integer,
+    "channel_id": unsigned integer,
+    "user_id": uuid string,
+    "unread": unsigned integer
+}
+```
+
 Error
 ```json
 {
@@ -254,7 +264,7 @@ Response
 
 | status          | JSON              |
 |-----------------|-------------------|
-| 204 No Content  | Null              |
+| 200 OK          | Channel_User      |
 | 404 Not Found   | Error             |
 
 #### Update user display name
