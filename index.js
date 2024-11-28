@@ -172,20 +172,21 @@ function registerChatListener(socket) {
     const userId = socket.handshake.auth.token;
     message.user = displayNames.get(userId);
 
-    // send chat message to every online user in that channel
+    // persist message in database
+    const { error } = await model.insertMessage(message.body, userId, message.timestamp, message.channel_id);
+    if (error) {
+      socketError(socket, "Message persistence failed");
+      return;
+    }
+
+    // send chat message to every online user in that channel and increment their notifications
     for (const userId of channelUsers.get(message.channel_id)) {
       const socket = clients.get(userId);
       if (socket !== undefined) {
         socket.emit("chat", message);
         logger.socket(`Sending ${JSON.stringify(message)} to ${userId} socket`);
       }
-    }
-
-    // persist message in database
-    const { error } = await model.insertMessage(message.body, userId, message.timestamp, message.channel_id);
-    if (error) {
-      socketError(socket, "Message persistence failed");
-      return;
+      model.updateUnreadMessage("incrementnotifications", userId, message.channelId);
     }
   });
 }
