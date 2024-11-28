@@ -131,9 +131,11 @@ describe("REST API Tests", () => {
       channelId: GENERAL
     });
     await fetch(`${SERVER}/notifications`, defineReq("PUT", body)).then(resp => {
-      assert.equal(resp.status, 204);
+      assert.equal(resp.status, 200);
+      return resp.json()
+    }).then(json => {
+      assert.equal(json.unread, 1);
     });
-    assert.equal(await getUnread(process.env.TEST_USER1, GENERAL), 1);
 
     // reset unread value
     await supabase.from('channels_users').update({ unread: 0 }).eq('user_id', process.env.TEST_USER1).eq('channel_id', GENERAL);
@@ -150,9 +152,11 @@ describe("REST API Tests", () => {
       channelId: GENERAL
     });
     await fetch(`${SERVER}/notifications`, defineReq("PUT", body)).then(resp => {
-      assert.equal(resp.status, 204);
+      assert.equal(resp.status, 200);
+      return resp.json()
+    }).then(json => {
+      assert.equal(json.unread, 0);
     });
-    assert.equal(await getUnread(process.env.TEST_USER1, GENERAL), 0);
 
     // reset unread value
     await supabase.from('channels_users').update({ unread: 1 }).eq('user_id', process.env.TEST_USER1).eq('channel_id', GENERAL);
