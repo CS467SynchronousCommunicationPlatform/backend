@@ -219,6 +219,25 @@ Response
 | 400 Bad Request  | Error             |
 | 409 Conflict     | Error             |
 
+#### Remove user from channel
+
+Request
+
+`POST /channel/<channelId>/users`
+
+| body param  | type         |
+|-------------|--------------|
+| userId      | uuid         |
+| remove      | bool         |
+
+Response
+
+| status           | JSON              |
+|------------------|-------------------|
+| 204 No Content   | Null              |
+| 400 Bad Request  | Error             |
+| 409 Conflict     | Error             |
+
 #### Update unread notifications
 
 Request
