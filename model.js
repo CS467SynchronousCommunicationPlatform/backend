@@ -75,6 +75,14 @@ export async function removeChannelsUsers(channelId, userId) {
     .eq('user_id', userId)
 }
 
+export async function readUnreadMessage(userId, channelId) {
+  return await supabase
+    .from('channels_users')
+    .select()
+    .eq('channel_id', channelId)
+    .eq('user_id', userId)
+}
+
 export async function updateUnreadMessage(func, userId, channelId) {
   return await supabase
     .rpc(func, { userid: userId, channelid: channelId });

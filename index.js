@@ -364,6 +364,16 @@ app.get("/channels/:channelId/messages", async (req, res, next) => {
 });
 
 // endpoint for updating unread notifications
+app.get("/notifications", async (req, res, next) => {
+  try {
+    const { data, error, status } = await model.readUnreadMessage(req.body.userId, req.body.channelId);
+    sendResponse(res, data, error, status);
+  } catch (err) {
+    next(err)
+  }
+});
+
+// endpoint for updating unread notifications
 app.put("/notifications", async (req, res, next) => {
   try {
     const { data, error, status } = await model.updateUnreadMessage(req.body.function, req.body.userId, req.body.channelId);
