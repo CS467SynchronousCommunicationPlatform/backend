@@ -180,11 +180,11 @@ function registerChatListener(socket) {
     message.user = displayNames.get(userId);
 
     // send chat message to every online user in that channel and increment their notifications
-    for (const userId of channelUsers.get(message.channel_id)) {
-      const socket = clients.get(userId);
+    for (const user of channelUsers.get(message.channel_id)) {
+      const socket = clients.get(user);
       if (socket !== undefined) {
         socket.emit("chat", message);
-        logger.socket(`Sending ${JSON.stringify(message)} to ${userId} socket`);
+        logger.socket(`Sending ${JSON.stringify(message)} to ${user} socket`);
       }
     }
 
@@ -195,10 +195,12 @@ function registerChatListener(socket) {
       return;
     }
 
-    // send chat message to every online user in that channel and increment their notifications
-    for (const userId of channelUsers.get(message.channel_id)) {
-      const { data } = await model.updateUnreadMessage("incrementnotifications", userId, message.channel_id);
-      const socket = clients.get(userId);
+    // send chat message to every online user (except sender) in that channel and increment their notifications
+    for (const user of channelUsers.get(message.channel_id)) {
+      if (user === userId)
+        continue; // skip sender
+      const { data } = await model.updateUnreadMessage("incrementnotifications", user, message.channel_id);
+      const socket = clients.get(user);
       if (data !== undefined && socket !== undefined) {
         socket.emit("notifications", { channel_id: data.channel_id, unread: data.unread })
       }
