@@ -40,6 +40,13 @@ export async function readAllChannelsUsers() {
     .select();
 }
 
+export async function readChannel(channelName) {
+  return await supabase
+    .from("channels")
+    .select()
+    .eq("name", channelName);
+}
+
 export async function readAllChannelsForUser(userId) {
   return await supabase
     .from('channels')

@@ -31,6 +31,8 @@ const server = createServer(options, app);
 
 const io = new Server(server, { transports: ["websocket"] });
 
+let generalId;
+
 // global maps from user id to client info
 let clients = new Map(); // user id -> socket
 let displayNames = new Map(); // user id -> display name
@@ -123,6 +125,11 @@ async function registerNewUser(socket, userId) {
     } else {
       channelUsers.set(id, [userId]);
     }
+  }
+
+  // send websocket event to each user in the general chat for the new user
+  for (const socket of clients.values()) {
+    socket.emit("channel", { message: "Added to channel", channelId: generalId });
   }
 
   logger.socket(`Added new user ${userId}`);
@@ -281,7 +288,7 @@ app.put("/users/:userId", async (req, res, next) => {
           "message": "User display name was updated"
         });
       }
-      displayNames.set(req.body.userId, req.body.displayName);
+      displayNames.set(req.params.userId, req.body.displayName);
     }
     sendResponse(res, data, error, status);
   } catch (err) {
@@ -316,26 +323,28 @@ app.post("/channels", async (req, res, next) => {
 // endpoint for adding and removing users to channels
 app.post("/channels/:channelId/users", async (req, res, next) => {
   try {
+    const channelId = Number(req.params.channelId);
     let data, error, status
     if (req.body.remove) {
       ({ data, error, status } = await model.removeChannelsUsers(req.params.channelId, req.body.userId));
       if (status === 204) {
-        let index = channelUsers.get(Number(req.params.channelId)).indexOf(req.body.userId);
-        channelUsers.get(Number(req.params.channelId)).splice(index, 1);
-        const socket = clients.get(req.body.userId);
-        if (socket !== undefined) {
-          socket.emit("channel", { message: "Removed from channel", channelId: Number(req.params.channelId) });
-        }
+        let index = channelUsers.get(channelId).indexOf(req.body.userId);
+        channelUsers.get(channelId).splice(index, 1);
       }
     } else {
       ({ data, error, status } = await model.addChannelsUsers(req.params.channelId, req.body.userId));
       // add user to channel for websocket traffic on success
       if (status === 201) {
-        channelUsers.get(Number(req.params.channelId)).push(req.body.userId);
-        const socket = clients.get(req.body.userId);
-        if (socket !== undefined) {
-          socket.emit("channel", { message: "Added to channel", channelId: Number(req.params.channelId) });
-        }
+        channelUsers.get(channelId).push(req.body.userId);
+      }
+    }
+
+    // send websocket event to each user in the relevant channel
+    const message = req.body.remove ? "Removed from channel" : "Added to channel";
+    for (const userId of channelUsers.get(channelId)) {
+      const socket = clients.get(userId);
+      if (socket !== undefined) {
+        socket.emit("channel", { message: message, channelId: channelId });
       }
     }
     sendResponse(res, data, error, status);
@@ -385,6 +394,13 @@ async function initializeBackend() {
   for (const { id, display_name } of data) {
     displayNames.set(id, display_name);
   }
+
+  // get general chat id
+  ({data, error} = await model.readChannel("General Chat"));
+  if (error) {
+    throw error;
+  }
+  generalId = data[0].id;
 
   // get all users for registered channels
   ({ data, error } = await model.readAllChannelsUsers());
