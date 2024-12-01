@@ -363,8 +363,8 @@ app.get("/channels/:channelId/messages", async (req, res, next) => {
   }
 });
 
-// endpoint for updating unread notifications
-app.get("/notifications", async (req, res, next) => {
+// endpoint for reading unread notifications
+app.post("/notifications", async (req, res, next) => {
   try {
     const { data, error, status } = await model.readUnreadMessage(req.body.userId, req.body.channelId);
     sendResponse(res, data, error, status);
@@ -406,7 +406,7 @@ async function initializeBackend() {
   }
 
   // get general chat id
-  ({data, error} = await model.readChannel("General Chat"));
+  ({ data, error } = await model.readChannel("General Chat"));
   if (error) {
     throw error;
   }
