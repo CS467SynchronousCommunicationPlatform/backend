@@ -1,3 +1,5 @@
+-- create table statements generated using definition tab from supabase
+
 -- users table
 create table
   public.users (
@@ -92,10 +94,12 @@ as $$
   where user_id = userId and channel_id = channelId;
 $$;
 
+-- based on example from https://supabase.com/docs/guides/auth/managing-user-data
 -- new user trigger
 create function handle_new_user()
 returns trigger
 language plpgsql
+security definer
 as $$
 begin
   if exists (select from public.users where display_name = new.raw_user_meta_data ->> 'name') then
