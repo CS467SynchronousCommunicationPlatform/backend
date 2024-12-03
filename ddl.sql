@@ -21,6 +21,12 @@ create table
     constraint channels_name_key unique (name)
   ) tablespace pg_default;
 
+insert into public.channels (name, description, private) values (
+  'General Chat',
+  'Landing page for all new users. Welcome!',
+  false
+);
+
 -- messages table
 create table
   public.messages (
